@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ADC CU</title>
+    <style>
+      #initial-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: #f7f9fb;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.5s ease;
+      }
+      #initial-loader.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .loader-ring-wrap {
+        position: relative;
+        width: 192px;
+        height: 192px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        /* Force this whole group onto its own GPU layer */
+        transform: translateZ(0);
+        will-change: transform;
+      }
+      .loader-ring-outer {
+        position: absolute;
+        width: 192px;
+        height: 192px;
+        border-radius: 50%;
+        border: 3px solid transparent;
+        border-top-color: #00caff;
+        border-right-color: #006783;
+        box-shadow: 0 0 30px rgba(0, 202, 255, 0.2);
+        transform: translateZ(0);
+        animation: spin-cw 1.5s linear infinite;
+      }
+      .loader-ring-inner {
+        position: absolute;
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        border-bottom-color: #00caff;
+        border-left-color: #006783;
+        opacity: 0.7;
+        transform: translateZ(0);
+        animation: spin-ccw 2s linear infinite;
+      }
+      .loader-logo {
+        position: relative;
+        width: 112px;
+        height: 112px;
+        border-radius: 50%;
+        background: #f7f9fb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        z-index: 1;
+      }
+      .loader-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .loader-text {
+        margin-top: 40px;
+        font-family: sans-serif;
+        font-size: 11px;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: #006783;
+        animation: pulse-text 1.5s ease-in-out infinite;
+      }
+      @keyframes spin-cw {
+        0%   { transform: translateZ(0) rotate(0deg); }
+        100% { transform: translateZ(0) rotate(360deg); }
+      }
+      @keyframes spin-ccw {
+        0%   { transform: translateZ(0) rotate(360deg); }
+        100% { transform: translateZ(0) rotate(0deg); }
+      }
+      @keyframes pulse-text {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="initial-loader">
+      <div class="loader-ring-wrap">
+        <div class="loader-ring-outer"></div>
+        <div class="loader-ring-inner"></div>
+        <div class="loader-logo">
+          <img src="/logo.png" alt="ADC Loading" />
+        </div>
+      </div>
+      <p class="loader-text">Loading Ecosystem</p>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

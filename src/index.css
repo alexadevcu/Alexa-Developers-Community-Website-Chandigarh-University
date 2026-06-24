@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+/* Spinner keyframes - global scope for reliable GPU compositing */
+@keyframes smoothSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes smoothSpinReverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+.animate-smooth-spin {
+  animation: smoothSpin 1.5s linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+.animate-smooth-spin-reverse {
+  animation: smoothSpinReverse 2s linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+@theme {
+  --color-tertiary-fixed: #d3e4fe;
+  --color-on-primary-fixed-variant: #004d63;
+  --color-outline: #6c7980;
+  --color-tertiary-fixed-dim: #b7c8e1;
+  --color-inverse-primary: #63d3ff;
+  --color-error-container: #ffdad6;
+  --color-on-primary-fixed: #001f2a;
+  --color-outline-variant: #bbc8d0;
+  --color-surface: #f7f9fb;
+  --color-on-primary: #ffffff;
+  --color-surface-container: #eceef0;
+  --color-on-tertiary-fixed-variant: #38485d;
+  --color-secondary-fixed-dim: #bec6e0;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-background: #191c1e;
+  --color-on-primary-container: #005168;
+  --color-primary-fixed-dim: #63d3ff;
+  --color-tertiary: #505f76;
+  --color-surface-variant: #e0e3e5;
+  --color-on-error-container: #93000a;
+  --color-surface-container-low: #f2f4f6;
+  --color-surface-tint: #006783;
+  --color-on-tertiary-container: #3c4c61;
+  --color-on-secondary-container: #5c647a;
+  --color-surface-container-highest: #e0e3e5;
+  --color-inverse-surface: #2d3133;
+  --color-secondary: #565e74;
+  --color-primary-fixed: #bce9ff;
+  --color-on-tertiary: #ffffff;
+  --color-on-error: #ffffff;
+  --color-tertiary-container: #acbcd5;
+  --color-on-secondary: #ffffff;
+  --color-on-surface: #191c1e;
+  --color-on-surface-variant: #3c494f;
+  --color-primary: #006783;
+  --color-surface-dim: #d8dadc;
+  --color-secondary-fixed: #dae2fd;
+  --color-surface-container-high: #e6e8ea;
+  --color-primary-container: #00caff;
+  --color-on-tertiary-fixed: #0b1c30;
+  --color-secondary-container: #dae2fd;
+  --color-surface-bright: #f7f9fb;
+  --color-inverse-on-surface: #eff1f3;
+  --color-on-secondary-fixed: #131b2e;
+  --color-background: #f7f9fb;
+  --color-error: #ba1a1a;
+  --color-on-secondary-fixed-variant: #3f465c;
+
+  --spacing-margin-mobile: 16px;
+  --spacing-container-max: 1280px;
+  --spacing-margin-desktop: 40px;
+  --spacing-gutter: 24px;
+  --spacing-base: 8px;
+
+  --font-label-sm: 'Space Grotesk', sans-serif;
+  --font-label-md: 'Space Grotesk', sans-serif;
+  --font-headline-xl-mobile: 'Space Grotesk', sans-serif;
+  --font-headline-md: 'Space Grotesk', sans-serif;
+  --font-headline-lg: 'Space Grotesk', sans-serif;
+  --font-body-lg: 'Space Grotesk', sans-serif;
+  --font-headline-xl: 'Space Grotesk', sans-serif;
+  --font-body-md: 'Space Grotesk', sans-serif;
+
+  --color-brand-black: #000000;
+  --color-brand-cyan: #00caff;
+
+  @keyframes marquee {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-50%); }
+  }
+}
+
+@layer base {
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-on-surface);
+    font-family: 'Space Grotesk', sans-serif;
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .voice-wave-container {
+    height: 120px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .wave-bar {
+    width: 4px;
+    background: var(--color-primary-container);
+    border-radius: 2px;
+    animation: wave-animation 1.5s ease-in-out infinite;
+  }
+  @keyframes wave-animation {
+    0%, 100% { height: 20%; }
+    50% { height: 100%; }
+  }
+  .glass-card {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 32px rgba(0, 103, 131, 0.05);
+    transition: all 0.3s ease;
+  }
+  .glass-card:hover {
+    box-shadow: 0 12px 40px rgba(0, 202, 255, 0.1);
+    transform: translateY(-4px);
+    background: rgba(255, 255, 255, 0.5);
+  }
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 1.5rem;
+  }
+  .animate-count {
+    animation: countIn 0.8s ease-out forwards;
+  }
+  @keyframes countIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Hide Spline Logo Watermark */
+  #spline-logo, 
+  a[href*="spline.design"] {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+}
