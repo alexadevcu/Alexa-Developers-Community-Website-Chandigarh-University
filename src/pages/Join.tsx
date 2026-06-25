@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, MessageSquare, Rocket, Play } from 'lucide-react';
-import landingGif from '../assets/homepage/landinggif.gif'; 
+import landingGif from '../assets/Homepage/landinggif.gif'; 
 
 const Join: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
