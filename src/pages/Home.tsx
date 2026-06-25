@@ -9,6 +9,22 @@ import teamGroupPic from '../assets/homepage/Landinggrouppic.jpg';
 import drAbhishekPic from '../assets/homepage/Faculty/DrAbhishek_Panday.jpg';
 import jasneetMamPic from '../assets/homepage/Faculty/Jasneet mam.jpg';
 import prabhneetSirPic from '../assets/homepage/Faculty/Prabhneet sir.jpg';
+import gal1 from '../assets/homepage/Gallery/IMG20260226153332.jpg.jpeg';
+import gal2 from '../assets/homepage/Gallery/IMG_0855 (1).JPG.jpeg';
+import gal3 from '../assets/homepage/Gallery/IMG_2312.jpg.jpeg';
+import gal4 from '../assets/homepage/Gallery/IMG_0928.jpg';
+import { supabase } from '../lib/supabase';
+
+interface Event {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  event_date: string;
+  poster_url: string;
+  registration_link: string;
+  status: 'upcoming' | 'completed';
+}
 
 // --- GLOBAL AUDIO MUTE HACK FOR SPLINE ---
 // Spline uses the Web Audio API. We can forcefully intercept and suspend 
@@ -55,6 +71,22 @@ const Home = () => {
   const [isLoading, setIsLoading] = useState(true);
   // Delay Spline mount so rings spin smoothly before heavy WebGL init
   const [showSpline, setShowSpline] = useState(false);
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+
+  useEffect(() => {
+    const fetchHomeEvents = async () => {
+      const { data } = await supabase
+        .from('events')
+        .select('*');
+        
+      if (data) {
+        const upcoming = data.filter(e => e.status === 'upcoming').sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
+        const past = data.filter(e => e.status !== 'upcoming').sort((a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime());
+        setUpcomingEvents([...upcoming, ...past].slice(0, 3));
+      }
+    };
+    fetchHomeEvents();
+  }, []);
 
   // Initialize smooth scroll
   useEffect(() => {
@@ -241,28 +273,47 @@ const Home = () => {
             <h2 className="font-headline-xl text-on-surface text-4xl md:text-5xl tracking-tight">
               Community Events
             </h2>
-            <a href="#" className="flex items-center gap-2 text-[#006783] font-label-md hover:gap-3 transition-all uppercase tracking-wider">
+            <Link to="/events" className="flex items-center gap-2 text-[#006783] font-label-md hover:gap-3 transition-all uppercase tracking-wider">
               View All Events <ArrowRight size={18} />
-            </a>
+            </Link>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="glass-card rounded-3xl overflow-hidden group cursor-pointer flex flex-col h-full">
-                <div className="h-56 bg-surface-variant relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
-                  <div className="absolute top-4 left-4 bg-surface px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-sm">Upcoming</div>
-                  <div className="w-full h-full bg-surface-dim transition-transform duration-700 group-hover:scale-105" />
-                </div>
-                <div className="p-8 flex-grow flex flex-col">
-                  <p className="text-[#006783] font-label-sm uppercase tracking-widest mb-3">Oct {10 + i}, 2026</p>
-                  <h3 className="font-headline-md text-on-surface mb-4 text-2xl leading-tight group-hover:text-[#006783] transition-colors">Advanced Voice Interactions Summit {i}</h3>
-                  <div className="mt-auto flex items-center gap-2 text-on-surface-variant font-label-sm uppercase tracking-widest group-hover:text-[#006783] transition-colors">
-                    Register <ArrowRight size={16} className="-translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
+            {upcomingEvents.length > 0 ? upcomingEvents.map((event) => {
+              const date = new Date(event.event_date);
+              const month = date.toLocaleDateString('en-US', { month: 'short' });
+              const day = date.getDate();
+              const year = date.getFullYear();
+
+              return (
+                <div key={event.id} className="glass-card rounded-3xl overflow-hidden group cursor-pointer flex flex-col h-full" onClick={() => window.location.href='/events'}>
+                  <div className="h-56 bg-surface-variant relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
+                    <div className={`absolute top-4 left-4 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-sm ${event.status === 'upcoming' ? 'bg-surface' : 'bg-surface-dim text-on-surface-variant'}`}>
+                      {event.status === 'upcoming' ? 'Upcoming' : 'Completed'}
+                    </div>
+                    {event.poster_url ? (
+                      <img src={event.poster_url} alt={event.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    ) : (
+                      <div className="w-full h-full bg-surface-dim transition-transform duration-700 group-hover:scale-105 flex items-center justify-center">
+                        <Calendar size={48} className="text-outline/30" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-8 flex-grow flex flex-col">
+                    <p className="text-[#006783] font-label-sm uppercase tracking-widest mb-3">{month} {day}, {year}</p>
+                    <h3 className="font-headline-md text-on-surface mb-4 text-2xl leading-tight group-hover:text-[#006783] transition-colors">{event.name}</h3>
+                    <div className="mt-auto flex items-center gap-2 text-on-surface-variant font-label-sm uppercase tracking-widest group-hover:text-[#006783] transition-colors">
+                      View Details <ArrowRight size={16} className="-translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
+                    </div>
                   </div>
                 </div>
+              );
+            }) : (
+              <div className="col-span-1 md:col-span-3 text-center py-12">
+                <p className="text-on-surface-variant text-lg">No upcoming events at the moment. Stay tuned!</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </section>
@@ -299,23 +350,23 @@ const Home = () => {
         {/* Bento Box Gallery Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-[250px]">
           {/* Left Large Vertical Image */}
-          <div className="md:col-span-1 md:row-span-2 rounded-[2rem] overflow-hidden group cursor-pointer">
-            <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80" alt="Students collaborating at a desk" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+          <div className="md:col-span-1 md:row-span-2 rounded-[2rem] overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-lg">
+            <img src={gal1} alt="ADC Community Event" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
           </div>
           
           {/* Right Top Left */}
-          <div className="rounded-[2rem] overflow-hidden group cursor-pointer">
-            <img src="https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w=800&q=80" alt="Student coding on laptop with Alexa" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+          <div className="rounded-[2rem] overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-lg">
+            <img src={gal2} alt="ADC Students Collaborating" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
           </div>
           
           {/* Right Top Right */}
-          <div className="rounded-[2rem] overflow-hidden group cursor-pointer">
-            <img src="https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80" alt="Wide room shot of students" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+          <div className="rounded-[2rem] overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-lg">
+            <img src={gal3} alt="ADC Team Project" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
           </div>
           
           {/* Right Bottom Wide */}
-          <div className="md:col-span-2 md:row-span-1 rounded-[2rem] overflow-hidden group cursor-pointer">
-            <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1600&q=80" alt="Students gathered around a table" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+          <div className="md:col-span-2 md:row-span-1 rounded-[2rem] overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-lg">
+            <img src={gal4} alt="ADC Team Gathering" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
           </div>
         </div>
       </section>

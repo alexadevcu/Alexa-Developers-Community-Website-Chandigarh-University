@@ -25,8 +25,8 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          // TODO: Replace this with your actual Web3Forms access key
-          access_key: "YOUR_ACCESS_KEY_HERE", 
+          // Web3Forms Access Key from .env
+          access_key: import.meta.env.VITE_WEB3FORMS_ACCESS_KEY, 
           name: formData.name,
           email: formData.email,
           message: formData.message,

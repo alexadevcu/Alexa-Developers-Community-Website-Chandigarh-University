@@ -24,7 +24,7 @@ interface Member {
 // ─── Drive link → embed URL ──────────────────────────────────────────────────
 const toDirectImageUrl = (url: string | null): string | null => {
   if (!url) return null;
-  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   if (match) return `https://lh3.googleusercontent.com/d/${match[1]}`;
   return url;
 };
@@ -44,7 +44,18 @@ const MemberAvatar: React.FC<{ url: string | null; name: string; size?: string }
     <div className={`${size} rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0`}>
       {imgUrl ? (
         <img src={imgUrl} alt={name} className="w-full h-full object-cover"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }} />
+          referrerPolicy="no-referrer"
+          onError={(e) => { 
+            const img = e.currentTarget;
+            const match = url?.match(/\/d\/([a-zA-Z0-9_-]+)/) || url?.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            const fallback = match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000` : null;
+            if (fallback && img.src !== fallback) {
+              img.src = fallback;
+            } else {
+              img.style.display = 'none';
+              img.nextElementSibling?.classList.remove('hidden');
+            }
+          }} />
       ) : null}
       <div className={`${imgUrl ? 'hidden' : ''} w-full h-full flex items-center justify-center`}>
         <UserCircle size={28} className="text-slate-300" />
@@ -155,9 +166,10 @@ const Admin: React.FC = () => {
   const [memberModalOpen, setMemberModalOpen] = useState(false);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [memberForm, setMemberForm] = useState<Partial<Member>>({
-    role_category: 'member', batch_year: '2024-25', is_current: true, order_index: 0,
+    role_category: 'member', batch_year: '2026-27', is_current: true, order_index: 0,
   });
   const [memberPhotoPreview, setMemberPhotoPreview] = useState<string | null>(null);
+  const [isMemberSaving, setIsMemberSaving] = useState(false);
 
   useEffect(() => { fetchMembers(); }, []);
 
@@ -169,7 +181,7 @@ const Admin: React.FC = () => {
   };
 
   const resetMemberForm = () => {
-    setMemberForm({ role_category: 'member', batch_year: '2024-25', is_current: true, order_index: 0 });
+    setMemberForm({ role_category: 'member', batch_year: '2026-27', is_current: true, order_index: 0 });
     setMemberPhotoPreview(null); setEditingMemberId(null);
   };
 
@@ -189,7 +201,15 @@ const Admin: React.FC = () => {
   const handleMemberSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setIsMemberSaving(true);
       const payload = { ...memberForm };
+      
+      // Auto-fill Role Title if left blank
+      if (!payload.role || payload.role.trim() === '') {
+        const cat = ROLE_CATEGORIES.find(c => c.value === (payload.role_category || 'member'));
+        payload.role = cat ? cat.label : 'Member';
+      }
+
       if (editingMemberId) {
         const { error } = await supabase.from('team_members').update(payload).eq('id', editingMemberId);
         if (error) throw error;
@@ -198,7 +218,12 @@ const Admin: React.FC = () => {
         if (error) throw error;
       }
       setMemberModalOpen(false); resetMemberForm(); fetchMembers();
-    } catch (err: any) { alert('Error: ' + err.message); }
+    } catch (err: any) { 
+      console.error("Submission error:", err);
+      alert('Error saving member: ' + (err.message || JSON.stringify(err))); 
+    } finally {
+      setIsMemberSaving(false);
+    }
   };
 
   const currentMembers = members.filter(m => m.is_current).length;
@@ -498,8 +523,8 @@ const Admin: React.FC = () => {
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/20 outline-none" />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Role Title * <span className="text-slate-400 font-normal">(e.g. "Technical Lead")</span></label>
-                      <input required type="text" value={memberForm.role || ''} onChange={e => setMemberForm({ ...memberForm, role: e.target.value })}
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Role Title <span className="text-slate-400 font-normal">(Leave blank for default)</span></label>
+                      <input type="text" placeholder='e.g. "Technical Lead"' value={memberForm.role || ''} onChange={e => setMemberForm({ ...memberForm, role: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/20 outline-none" />
                     </div>
                   </div>
@@ -514,7 +539,7 @@ const Admin: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Batch Year *</label>
-                      <input required type="text" placeholder="e.g. 2024-25" value={memberForm.batch_year || ''} onChange={e => setMemberForm({ ...memberForm, batch_year: e.target.value })}
+                      <input required type="text" placeholder="e.g. 2026-27" value={memberForm.batch_year || ''} onChange={e => setMemberForm({ ...memberForm, batch_year: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
                     </div>
                   </div>
@@ -573,9 +598,9 @@ const Admin: React.FC = () => {
               <div className="bg-slate-50 border-t border-slate-200 p-5 flex justify-end gap-3 shrink-0">
                 <button type="button" onClick={() => { setMemberModalOpen(false); resetMemberForm(); }}
                   className="px-5 py-2.5 font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition-all">Cancel</button>
-                <button type="submit" form="member-form"
-                  className="px-6 py-2.5 bg-[#0ea5e9] text-white font-semibold rounded-xl hover:bg-[#0284c7] transition-all shadow-sm">
-                  {editingMemberId ? 'Update Member' : 'Add Member'}
+                <button type="submit" form="member-form" disabled={isMemberSaving}
+                  className="px-6 py-2.5 bg-[#0ea5e9] text-white font-semibold rounded-xl hover:bg-[#0284c7] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                  {isMemberSaving ? 'Saving...' : (editingMemberId ? 'Update Member' : 'Add Member')}
                 </button>
               </div>
             </motion.div>
