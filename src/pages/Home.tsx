@@ -8,6 +8,7 @@ import teamGroupPic from '../assets/Homepage/Landinggrouppic.jpg';
 import drAbhishekPic from '../assets/Homepage/Faculty/DrAbhishek_Panday.jpg';
 import jasneetMamPic from '../assets/Homepage/Faculty/Jasneet mam.jpg';
 import prabhneetSirPic from '../assets/Homepage/Faculty/Prabhneet sir.jpg';
+import shivamSirPic from '../assets/Homepage/Faculty/Shivam Sir.jpg';
 import gal1 from '../assets/Homepage/Gallery/IMG20260226153332.jpg.jpeg';
 import gal2 from '../assets/Homepage/Gallery/IMG_0855 (1).JPG.jpeg';
 import gal3 from '../assets/Homepage/Gallery/IMG_2312.jpg.jpeg';
@@ -409,22 +410,22 @@ const Home = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
             { 
-              quote: "\"Being part of the Alexa Developers Community has completely changed how I think about user interaction. The mentorship here is world-class.\"", 
-              name: "Maya Singh", 
-              role: "UI/UX Designer • 2023", 
-              avatar: "https://i.pravatar.cc/150?img=5" 
+              quote: "\"When I first joined, I was just another student curious about technology. A few years later, I had the privilege of leading this incredible community. Watching our workshops fill with eager learners, seeing first-time attendees become organizers, and celebrating every successful event together are memories I'll always cherish. This community shaped me as much as I hope I helped shape it.\"", 
+              name: "Devansh Chopra", 
+              role: "Former President", 
+              avatar: "https://ui-avatars.com/api/?name=Devansh+Chopra&background=006783&color=fff&size=150" 
             },
             { 
-              quote: "\"The hackathons are intense but rewarding. I built my first functional smart home skill in just 48 hours thanks to the SDK workshops.\"", 
-              name: "Julian Vance", 
-              role: "Engineer • 2024", 
-              avatar: "https://i.pravatar.cc/150?img=11" 
+              quote: "\"Behind every successful workshop was a team that genuinely cared about creating value for others. We weren't just organizing events—we were creating opportunities for students to discover their passion for technology. Being part of that journey is something I'll always be grateful for.\"", 
+              name: "Gurmeet Kaur", 
+              role: "Former Community Manager", 
+              avatar: "https://ui-avatars.com/api/?name=Gurmeet+Kaur&background=006783&color=fff&size=150" 
             },
             { 
-              quote: "\"It's more than just coding; it's about the connections. I found my co-founder for our voice-AI startup right here in this community.\"", 
-              name: "Aisha Roberts", 
-              role: "Tech Enthusiast • 2023", 
-              avatar: "https://i.pravatar.cc/150?img=9" 
+              quote: "\"Even after graduating, I still look back at this community with pride. It wasn't just a club—it was a family that challenged me to grow, supported me when things got difficult, and celebrated every milestone together. The skills I gained here opened doors, but the people I met made the experience unforgettable.\"", 
+              name: "Samarth", 
+              role: "Alumni", 
+              avatar: "https://ui-avatars.com/api/?name=Samarth&background=006783&color=fff&size=150" 
             }
           ].map((testimonial, i) => (
             <div key={i} className="bg-surface-container-low border border-outline-variant/30 rounded-[2.5rem] p-10 flex flex-col h-full hover:-translate-y-2 transition-transform duration-300 shadow-sm hover:shadow-xl">
@@ -457,7 +458,7 @@ const Home = () => {
               {[
                 { name: "Dr. Jasneet Kaur Mam", title: "Faculty mentor ADC, HOD cse final year CU", image: jasneetMamPic },
                 { name: "Er Prabhneet Singh Sir", title: "Co-Faculty Adviser", image: prabhneetSirPic },
-                { name: "Shivam Sir", title: "Faculty Advisor", image: undefined },
+                { name: "Shivam Sir", title: "Faculty Advisor", image: shivamSirPic },
                 { name: "Dr. Abhishek Kumar Sir", title: "Research Mentor", image: drAbhishekPic }
               ].map((faculty, i) => (
                 <div key={i} className="flex flex-col items-center text-center group cursor-pointer hover:-translate-y-2 transition-transform bg-white/5 p-8 rounded-3xl border border-white/10">

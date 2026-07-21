@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import {
   Plus, Trash2, Image as ImageIcon, Calendar, Edit3, X, CheckCircle2,
-  Activity, LayoutDashboard, Clock, LogOut, Users, Link as LinkIcon, UserCircle,
+  Activity, LayoutDashboard, Clock, LogOut, Users, Link as LinkIcon, UserCircle, Archive, Pin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -12,6 +12,10 @@ interface Event {
   id: string; name: string; type: string; description: string;
   partnerships: string; event_date: string; registration_link: string;
   poster_url: string; status: 'upcoming' | 'completed'; is_registration_open: boolean;
+  gallery_urls?: string | null;
+  end_date?: string | null;
+  is_archived?: boolean;
+  is_pinned?: boolean;
 }
 
 interface Member {
@@ -93,7 +97,7 @@ const Admin: React.FC = () => {
   const [eventModalOpen, setEventModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
-  const [eventForm, setEventForm] = useState<Partial<Event>>({ status: 'upcoming', is_registration_open: true });
+  const [eventForm, setEventForm] = useState<Partial<Event>>({ status: 'upcoming', is_registration_open: true, is_archived: false, is_pinned: false });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -107,12 +111,16 @@ const Admin: React.FC = () => {
   };
 
   const resetEventForm = () => {
-    setEventForm({ status: 'upcoming', is_registration_open: true });
+    setEventForm({ status: 'upcoming', is_registration_open: true, is_archived: false, is_pinned: false });
     setSelectedFile(null); setPreviewUrl(null); setEditingEventId(null);
   };
 
   const handleEventEdit = (event: Event) => {
-    setEventForm({ ...event, event_date: new Date(event.event_date).toISOString().slice(0, 16) });
+    setEventForm({ 
+      ...event, 
+      event_date: new Date(event.event_date).toISOString().slice(0, 16),
+      end_date: event.end_date ? new Date(event.end_date).toISOString().slice(0, 16) : ''
+    });
     setPreviewUrl(event.poster_url); setEditingEventId(event.id); setEventModalOpen(true);
   };
 
@@ -144,7 +152,11 @@ const Admin: React.FC = () => {
       setIsUploading(true);
       let finalPosterUrl = eventForm.poster_url;
       if (selectedFile) finalPosterUrl = await uploadImage(selectedFile);
-      const payload = { ...eventForm, poster_url: finalPosterUrl };
+      const payload = { 
+        ...eventForm, 
+        poster_url: finalPosterUrl,
+        end_date: eventForm.end_date ? eventForm.end_date : null
+      };
       if (editingEventId) {
         const { error } = await supabase.from('events').update(payload).eq('id', editingEventId);
         if (error) throw error;
@@ -162,6 +174,16 @@ const Admin: React.FC = () => {
     const { error } = await supabase.from('events').update({ is_registration_open: newStatus }).eq('id', id);
     if (!error) setEvents(prev => prev.map(e => e.id === id ? { ...e, is_registration_open: newStatus } : e));
     else alert('Failed to update: ' + error.message);
+  };
+
+  const toggleArchive = async (id: string, currentStatus: boolean) => {
+    const { error } = await supabase.from('events').update({ is_archived: !currentStatus }).eq('id', id);
+    if (!error) setEvents(prev => prev.map(e => e.id === id ? { ...e, is_archived: !currentStatus } : e));
+  };
+
+  const togglePin = async (id: string, currentStatus: boolean) => {
+    const { error } = await supabase.from('events').update({ is_pinned: !currentStatus }).eq('id', id);
+    if (!error) setEvents(prev => prev.map(e => e.id === id ? { ...e, is_pinned: !currentStatus } : e));
   };
 
   const totalEvents = events.length;
@@ -409,12 +431,26 @@ const Admin: React.FC = () => {
                       <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded ${event.status === 'upcoming' ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-white'}`}>{event.status}</span>
                       <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded bg-white text-[#0ea5e9]">{event.type}</span>
                     </div>
+                    <div className="absolute top-2.5 right-2.5 flex gap-2">
+                      {event.is_pinned && <span className="p-1 rounded bg-amber-100 text-amber-700"><Pin size={12} className="fill-amber-700" /></span>}
+                      {event.is_archived && <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded bg-red-100 text-red-700">Archived</span>}
+                    </div>
                   </div>
                   <div className="p-4 flex-grow flex flex-col">
                     <h3 className="font-display text-lg font-bold text-slate-800 mb-1 line-clamp-1">{event.name}</h3>
-                    <div className="flex items-center gap-2 text-slate-400 text-xs mb-4">
-                      <Calendar size={12} className="text-[#0ea5e9]" />
-                      {new Date(event.event_date).toLocaleDateString()}
+                    <div className="flex flex-wrap items-center gap-2 text-slate-400 text-xs mb-4">
+                      <div className="flex items-center gap-1">
+                        <Calendar size={12} className="text-[#0ea5e9]" />
+                        {new Date(event.event_date).toLocaleDateString()}
+                      </div>
+                      {event.end_date && (
+                        <>
+                          <span>-</span>
+                          <div className="flex items-center gap-1">
+                            {new Date(event.end_date).toLocaleDateString()}
+                          </div>
+                        </>
+                      )}
                     </div>
                     <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between">
                       <button onClick={() => toggleRegistration(event.id, event.is_registration_open ?? true)}
@@ -427,6 +463,14 @@ const Admin: React.FC = () => {
                         {(event.is_registration_open ?? true) ? 'Reg Open' : 'Reg Closed'}
                       </button>
                       <div className="flex gap-1">
+                        <button onClick={() => togglePin(event.id, event.is_pinned ?? false)} 
+                          className={`p-1.5 rounded transition-colors ${event.is_pinned ? 'text-amber-500 bg-amber-50' : 'text-slate-400 hover:text-amber-500 hover:bg-slate-50'}`} title="Toggle Pin">
+                          <Pin size={16} />
+                        </button>
+                        <button onClick={() => toggleArchive(event.id, event.is_archived ?? false)} 
+                          className={`p-1.5 rounded transition-colors ${event.is_archived ? 'text-red-500 bg-red-50' : 'text-slate-400 hover:text-red-500 hover:bg-slate-50'}`} title="Toggle Archive">
+                          <Archive size={16} />
+                        </button>
                         <button onClick={() => handleEventEdit(event)} className="text-slate-400 hover:text-[#0ea5e9] p-1.5 rounded hover:bg-slate-50 transition-colors"><Edit3 size={16} /></button>
                         <button onClick={() => handleEventDelete(event.id)} className="text-slate-400 hover:text-red-500 p-1.5 rounded hover:bg-slate-50 transition-colors"><Trash2 size={16} /></button>
                       </div>
@@ -603,10 +647,17 @@ const Admin: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Date & Time *</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Start Date & Time *</label>
                       <input required type="datetime-local" value={eventForm.event_date || ''} onChange={e => setEventForm({ ...eventForm, event_date: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
                     </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">End Date & Time (Optional)</label>
+                      <input type="datetime-local" value={eventForm.end_date || ''} onChange={e => setEventForm({ ...eventForm, end_date: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status *</label>
                       <select required value={eventForm.status || 'upcoming'} onChange={e => setEventForm({ ...eventForm, status: e.target.value as 'upcoming' | 'completed' })}
@@ -627,6 +678,12 @@ const Admin: React.FC = () => {
                       <input type="url" value={eventForm.registration_link || ''} onChange={e => setEventForm({ ...eventForm, registration_link: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Gallery URLs (Comma-separated Google Drive Links)</label>
+                    <textarea rows={2} value={eventForm.gallery_urls || ''} onChange={e => setEventForm({ ...eventForm, gallery_urls: e.target.value })}
+                      placeholder="https://drive.google.com/file/d/..., https://drive.google.com/file/d/..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/20 outline-none resize-y" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Poster Image *</label>

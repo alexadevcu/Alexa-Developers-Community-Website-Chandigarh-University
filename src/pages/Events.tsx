@@ -1,7 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, ChevronRight, ChevronLeft, Play, Info, X } from 'lucide-react';
+import { Calendar, ChevronRight, ChevronLeft, Play, Info, X, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+
+const toDirectImageUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (match) return `https://lh3.googleusercontent.com/d/${match[1]}`;
+  return url;
+};
 
 interface Event {
   id: string;
@@ -14,15 +21,26 @@ interface Event {
   poster_url: string;
   status: 'upcoming' | 'completed';
   is_registration_open?: boolean;
+  gallery_urls?: string | null;
+  end_date?: string | null;
+  is_archived?: boolean;
+  is_pinned?: boolean;
 }
 
 const Events: React.FC = () => {
-  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [heroEvents, setHeroEvents] = useState<Event[]>([]);
   const [heroIndex, setHeroIndex] = useState(0);
-  const [pastEvents, setPastEvents] = useState<Event[]>([]);
+  const [carouselEvents, setCarouselEvents] = useState<Event[]>([]);
+  const [showAllEvents, setShowAllEvents] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
+
+  // Reset description expansion when hero changes
+  useEffect(() => {
+    setIsDescExpanded(false);
+  }, [heroIndex]);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -46,20 +64,36 @@ const Events: React.FC = () => {
         if (error) throw error;
 
         if (data) {
-          // Find all upcoming events, sorted closest first
-          const allUpcoming = data
+          // Filter out archived events
+          const activeEvents = data.filter(e => !e.is_archived);
+
+          // Find all upcoming events, sorted by pinned first, then closest date
+          const allUpcoming = activeEvents
             .filter(e => e.status === 'upcoming')
-            .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
+            .sort((a, b) => {
+              if (a.is_pinned && !b.is_pinned) return -1;
+              if (!a.is_pinned && b.is_pinned) return 1;
+              return new Date(a.event_date).getTime() - new Date(b.event_date).getTime();
+            });
           
-          setUpcomingEvents(allUpcoming);
-          
-          // Put all remaining events in the carousel, sorted newest to oldest
+          // Put all remaining events in the carousel, sorted by pinned first, then newest to oldest
           const upcomingIds = allUpcoming.map(e => e.id);
-          const past = data
+          let past = activeEvents
             .filter(e => !upcomingIds.includes(e.id))
-            .sort((a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime());
+            .sort((a, b) => {
+              if (a.is_pinned && !b.is_pinned) return -1;
+              if (!a.is_pinned && b.is_pinned) return 1;
+              return new Date(b.event_date).getTime() - new Date(a.event_date).getTime();
+            });
+
+          let hero = allUpcoming;
+          if (allUpcoming.length === 0 && past.length > 0) {
+            hero = [past[0]];
+            past = past.slice(1);
+          }
             
-          setPastEvents(past);
+          setHeroEvents(hero);
+          setCarouselEvents(past);
         }
       } catch (err) {
         console.error("Error fetching events:", err);
@@ -70,20 +104,27 @@ const Events: React.FC = () => {
     fetchEvents();
   }, []);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', { 
+  const formatDate = (dateString: string, endDateString?: string | null) => {
+    const start = new Date(dateString).toLocaleDateString('en-US', { 
       year: 'numeric', month: 'long', day: 'numeric'
     });
+    if (endDateString) {
+      const end = new Date(endDateString).toLocaleDateString('en-US', { 
+        year: 'numeric', month: 'long', day: 'numeric'
+      });
+      return `${start} - ${end}`;
+    }
+    return start;
   };
 
   // Auto-rotate Hero banner
   useEffect(() => {
-    if (upcomingEvents.length <= 1) return;
+    if (heroEvents.length <= 1) return;
     const interval = setInterval(() => {
-      setHeroIndex(prev => (prev + 1) % upcomingEvents.length);
+      setHeroIndex(prev => (prev + 1) % heroEvents.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, [upcomingEvents.length]);
+  }, [heroEvents.length]);
 
   const scrollCarousel = (direction: 'left' | 'right') => {
     if (carouselRef.current) {
@@ -106,8 +147,8 @@ const Events: React.FC = () => {
   return (
     <div className="w-full min-h-screen bg-slate-50 text-slate-800 overflow-x-hidden pb-32 font-sans selection:bg-[#0ea5e9]/20">
       
-      {/* --- HERO BANNER (Multiple Upcoming Events) --- */}
-      {upcomingEvents.length > 0 ? (
+      {/* --- HERO BANNER (Multiple Upcoming Events or Recent Event) --- */}
+      {heroEvents.length > 0 ? (
         <div className="relative w-full min-h-[90vh] md:min-h-[95vh] flex items-end overflow-hidden group pt-24 bg-slate-900">
           
           <AnimatePresence mode="wait">
@@ -120,8 +161,8 @@ const Events: React.FC = () => {
               transition={{ duration: 1.2, ease: "easeOut" }}
             >
               <img 
-                src={upcomingEvents[heroIndex].poster_url || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop"} 
-                alt={upcomingEvents[heroIndex].name} 
+                src={heroEvents[heroIndex].poster_url || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop"} 
+                alt={heroEvents[heroIndex].name} 
                 className="w-full h-full object-cover origin-center opacity-70"
               />
               {/* Soft Gradient Overlays for Light Theme text contrast */}
@@ -142,44 +183,60 @@ const Events: React.FC = () => {
               >
                 {/* Badges */}
                 <div className="flex flex-wrap items-center gap-3 mb-6">
-                  <div className="px-3 py-1 bg-red-600 text-white rounded font-bold text-xs uppercase tracking-[0.2em] shadow-sm flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
-                    UPCOMING PREMIERE
-                  </div>
+                  {heroEvents[heroIndex].status === 'upcoming' ? (
+                    <div className="px-3 py-1 bg-red-600 text-white rounded font-bold text-xs uppercase tracking-[0.2em] shadow-sm flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                      UPCOMING PREMIERE
+                    </div>
+                  ) : (
+                    <div className="px-3 py-1 bg-slate-600 text-white rounded font-bold text-xs uppercase tracking-[0.2em] shadow-sm flex items-center gap-2">
+                      PAST HIGHLIGHT
+                    </div>
+                  )}
                   <span className="text-[#0ea5e9] font-mono text-xs md:text-sm uppercase tracking-widest font-bold">
-                    {upcomingEvents[heroIndex].type}
+                    {heroEvents[heroIndex].type}
                   </span>
                 </div>
                 
                 {/* Title */}
                 <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-9xl font-display font-black text-slate-800 mb-4 md:mb-6 tracking-tighter leading-[0.9] drop-shadow-sm max-w-5xl uppercase">
-                  {upcomingEvents[heroIndex].name}
+                  {heroEvents[heroIndex].name}
                 </h1>
                 
                 {/* Metadata */}
                 <div className="flex flex-wrap items-center gap-3 md:gap-6 mb-4 md:mb-6 text-slate-600 font-mono text-xs sm:text-sm uppercase tracking-widest">
-                  <span className="text-emerald-600 font-bold">{new Date(upcomingEvents[heroIndex].event_date).getFullYear()}</span>
-                  <div className="flex items-center gap-2">
+                  <span className="text-emerald-600 font-bold">{new Date(heroEvents[heroIndex].event_date).getFullYear()}</span>
+                  <div className="flex flex-wrap items-center gap-2">
                     <Calendar size={16} className="text-[#0ea5e9]" />
-                    <span className="font-semibold">{formatDate(upcomingEvents[heroIndex].event_date)}</span>
+                    <span className="font-semibold">{formatDate(heroEvents[heroIndex].event_date, heroEvents[heroIndex].end_date)}</span>
                   </div>
-                  {upcomingEvents[heroIndex].partnerships && (
+                  {heroEvents[heroIndex].partnerships && (
                     <span className="border border-slate-300 px-2 py-0.5 rounded text-xs font-semibold">
-                      {upcomingEvents[heroIndex].partnerships}
+                      {heroEvents[heroIndex].partnerships}
                     </span>
                   )}
                 </div>
 
                 {/* Description */}
-                <p className="text-slate-600 font-sans text-lg md:text-xl max-w-2xl mb-10 leading-relaxed font-medium line-clamp-3 md:line-clamp-none">
-                  {upcomingEvents[heroIndex].description}
-                </p>
+                <div className="max-w-2xl mb-10">
+                  <p className={`text-slate-600 font-sans text-lg md:text-xl leading-relaxed font-medium ${isDescExpanded ? '' : 'line-clamp-3'}`}>
+                    {heroEvents[heroIndex].description}
+                  </p>
+                  {heroEvents[heroIndex].description.length > 150 && (
+                    <button 
+                      onClick={() => setIsDescExpanded(!isDescExpanded)}
+                      className="text-[#0ea5e9] hover:text-[#0284c7] font-semibold text-sm mt-2 focus:outline-none"
+                    >
+                      {isDescExpanded ? 'Read Less' : 'Read More'}
+                    </button>
+                  )}
+                </div>
 
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3">
-                  {upcomingEvents[heroIndex].status === 'upcoming' && upcomingEvents[heroIndex].is_registration_open !== false && upcomingEvents[heroIndex].registration_link ? (
+                  {heroEvents[heroIndex].status === 'upcoming' && heroEvents[heroIndex].is_registration_open !== false && heroEvents[heroIndex].registration_link ? (
                     <a 
-                      href={upcomingEvents[heroIndex].registration_link}
+                      href={heroEvents[heroIndex].registration_link}
                       target="_blank"
                       rel="noreferrer"
                       className="px-6 py-3 md:px-8 md:py-3.5 bg-[#0ea5e9] text-white font-bold text-base md:text-lg rounded-xl hover:bg-[#0284c7] transition-all flex items-center gap-2 md:gap-3 shadow-md w-full sm:w-auto justify-center"
@@ -192,7 +249,7 @@ const Events: React.FC = () => {
                     </button>
                   )}
                   <button 
-                    onClick={() => setSelectedEvent(upcomingEvents[heroIndex])}
+                    onClick={() => setSelectedEvent(heroEvents[heroIndex])}
                     className="px-6 py-3 md:px-8 md:py-3.5 bg-white text-slate-700 font-bold text-base md:text-lg rounded-xl border border-slate-200 hover:bg-slate-50 transition-all flex items-center gap-2 md:gap-3 shadow-sm w-full sm:w-auto justify-center"
                   >
                     <Info size={20} className="text-[#0ea5e9]" /> More Info
@@ -202,11 +259,11 @@ const Events: React.FC = () => {
             </AnimatePresence>
 
             {/* Netflix-style Slide Controls — arrows + dots, shown on hover */}
-            {upcomingEvents.length > 1 && (
+            {heroEvents.length > 1 && (
               <>
                 {/* Left Arrow */}
                 <button
-                  onClick={() => setHeroIndex(prev => (prev - 1 + upcomingEvents.length) % upcomingEvents.length)}
+                  onClick={() => setHeroIndex(prev => (prev - 1 + heroEvents.length) % heroEvents.length)}
                   className="absolute left-2 md:left-10 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 hover:bg-white border border-slate-200 shadow-lg flex items-center justify-center text-slate-700 hover:text-[#0ea5e9] transition-all duration-200 opacity-100 md:opacity-0 group-hover:opacity-100 hover:scale-110"
                   aria-label="Previous event"
                 >
@@ -215,7 +272,7 @@ const Events: React.FC = () => {
 
                 {/* Right Arrow */}
                 <button
-                  onClick={() => setHeroIndex(prev => (prev + 1) % upcomingEvents.length)}
+                  onClick={() => setHeroIndex(prev => (prev + 1) % heroEvents.length)}
                   className="absolute right-2 md:right-10 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 hover:bg-white border border-slate-200 shadow-lg flex items-center justify-center text-slate-700 hover:text-[#0ea5e9] transition-all duration-200 opacity-100 md:opacity-0 group-hover:opacity-100 hover:scale-110"
                   aria-label="Next event"
                 >
@@ -224,7 +281,7 @@ const Events: React.FC = () => {
 
                 {/* Dot Indicators — bottom center */}
                 <div className="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-2 z-30">
-                  {upcomingEvents.map((_, idx) => (
+                  {heroEvents.map((_, idx) => (
                     <button
                       key={idx}
                       onClick={() => setHeroIndex(idx)}
@@ -240,50 +297,40 @@ const Events: React.FC = () => {
       ) : (
         <div className="w-full h-[60vh] flex flex-col items-center justify-center bg-slate-50 border-b border-slate-200 pt-20">
           <Calendar size={48} className="text-slate-300 mb-4" />
-          <h2 className="font-display text-3xl md:text-5xl text-slate-400 mb-2 font-bold tracking-tight">No Upcoming Events</h2>
+          <h2 className="font-display text-3xl md:text-5xl text-slate-400 mb-2 font-bold tracking-tight">No Events</h2>
           <p className="font-sans text-slate-500">Stay tuned. The next big thing is loading.</p>
         </div>
       )}
 
-      {/* --- EVENT ARCHIVES CAROUSEL (Netflix Style - Light) --- */}
-      {pastEvents.length > 0 && (
+      {/* --- EVENT ARCHIVES CAROUSEL & GRID --- */}
+      {carouselEvents.length > 0 && (
         <div className="w-full mt-10 md:-mt-24 relative z-20 px-4 md:px-12 lg:px-16">
-          <h2 className="font-display text-2xl md:text-3xl font-bold text-slate-800 mb-4 ml-2 md:ml-4 tracking-tight drop-shadow-sm">
-            Event Archives & Highlights
-          </h2>
-          
-          <div className="relative group/slider">
-            
-            {/* Scroll Left Button */}
+          <div className="flex justify-between items-end mb-4 ml-2 md:ml-4">
+            <h2 className="font-display text-2xl md:text-3xl font-bold text-slate-800 tracking-tight drop-shadow-sm">
+              Event Archives & Highlights
+            </h2>
             <button 
-              onClick={() => scrollCarousel('left')}
-              className="absolute left-0 top-0 bottom-0 z-40 w-12 md:w-16 bg-gradient-to-r from-slate-50 to-transparent flex items-center justify-start opacity-0 group-hover/slider:opacity-100 transition-opacity duration-300"
+              onClick={() => setShowAllEvents(!showAllEvents)} 
+              className="text-[#0ea5e9] font-bold text-sm uppercase tracking-widest hover:underline whitespace-nowrap px-4"
             >
-              <ChevronLeft size={48} className="text-slate-800 hover:scale-110 transition-transform drop-shadow-md ml-[-10px]" />
+              {showAllEvents ? 'View Carousel' : 'View All'}
             </button>
-
-            {/* Scroll Area */}
-            <div 
-              ref={carouselRef}
-              className="flex gap-3 md:gap-4 overflow-x-auto pb-16 pt-6 px-2 md:px-4 snap-x snap-mandatory hide-scrollbar style-scrollbar"
-            >
-              {pastEvents.map((event) => (
+          </div>
+          
+          {showAllEvents ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-4 pb-16 px-2 md:px-4">
+              {carouselEvents.map((event) => (
                 <div 
                   key={event.id}
                   onClick={() => setSelectedEvent(event)}
-                  className="min-w-[260px] md:min-w-[320px] lg:min-w-[380px] h-[146px] md:h-[180px] lg:h-[214px] relative rounded-xl overflow-hidden snap-start cursor-pointer border border-slate-200 bg-white group/card transition-all duration-500 hover:scale-105 hover:z-30 hover:shadow-xl shadow-sm"
+                  className="h-[200px] md:h-[240px] relative rounded-xl overflow-hidden cursor-pointer border border-slate-200 bg-white group/card transition-all duration-500 hover:scale-105 hover:z-30 hover:shadow-xl shadow-sm"
                 >
-                  {/* Thumbnail Image */}
                   <img 
                     src={event.poster_url || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"} 
                     alt={event.name} 
                     className="absolute inset-0 w-full h-full object-cover"
                   />
-                  
-                  {/* Constant subtle vignette (Light variation) */}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/30 to-transparent" />
-                  
-                  {/* Content - ALWAYS VISIBLE */}
                   <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-5">
                     <span className="text-[#0ea5e9] font-bold text-[10px] uppercase tracking-[0.2em] mb-1 drop-shadow-sm">
                       {event.type}
@@ -299,21 +346,70 @@ const Events: React.FC = () => {
                 </div>
               ))}
             </div>
-
-            {/* Scroll Right Button */}
-            <button 
-              onClick={() => scrollCarousel('right')}
-              className="absolute right-0 top-0 bottom-0 z-40 w-12 md:w-16 bg-gradient-to-l from-slate-50 to-transparent flex items-center justify-end opacity-0 group-hover/slider:opacity-100 transition-opacity duration-300"
-            >
-              <ChevronRight size={48} className="text-slate-800 hover:scale-110 transition-transform drop-shadow-md mr-[-10px]" />
-            </button>
-
-            {/* Hide scrollbar completely but allow scrolling */}
-            <style>{`
-              .hide-scrollbar::-webkit-scrollbar { display: none; }
-              .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-            `}</style>
-          </div>
+          ) : (
+            <div className="relative group/slider">
+              
+              {/* Scroll Left Button */}
+              <button 
+                onClick={() => scrollCarousel('left')}
+                className="absolute left-0 top-0 bottom-0 z-40 w-12 md:w-16 bg-gradient-to-r from-slate-50 to-transparent flex items-center justify-start opacity-0 group-hover/slider:opacity-100 transition-opacity duration-300"
+              >
+                <ChevronLeft size={48} className="text-slate-800 hover:scale-110 transition-transform drop-shadow-md ml-[-10px]" />
+              </button>
+  
+              {/* Scroll Area */}
+              <div 
+                ref={carouselRef}
+                className="flex gap-3 md:gap-4 overflow-x-auto pb-16 pt-6 px-2 md:px-4 snap-x snap-mandatory hide-scrollbar style-scrollbar"
+              >
+                {carouselEvents.map((event) => (
+                  <div 
+                    key={event.id}
+                    onClick={() => setSelectedEvent(event)}
+                    className="min-w-[260px] md:min-w-[320px] lg:min-w-[380px] h-[146px] md:h-[180px] lg:h-[214px] relative rounded-xl overflow-hidden snap-start cursor-pointer border border-slate-200 bg-white group/card transition-all duration-500 hover:scale-105 hover:z-30 hover:shadow-xl shadow-sm"
+                  >
+                    {/* Thumbnail Image */}
+                    <img 
+                      src={event.poster_url || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"} 
+                      alt={event.name} 
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    
+                    {/* Constant subtle vignette (Light variation) */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/30 to-transparent" />
+                    
+                    {/* Content - ALWAYS VISIBLE */}
+                    <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-5">
+                      <span className="text-[#0ea5e9] font-bold text-[10px] uppercase tracking-[0.2em] mb-1 drop-shadow-sm">
+                        {event.type}
+                      </span>
+                      <h3 className="font-display text-base md:text-lg text-white font-bold leading-tight mb-2 drop-shadow-md">
+                        {event.name}
+                      </h3>
+                      <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-bold font-mono">
+                        <span className="border border-white/50 text-white/90 px-1 rounded">ADC</span>
+                        <span className="text-white/80">{new Date(event.event_date).getFullYear()}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+  
+              {/* Scroll Right Button */}
+              <button 
+                onClick={() => scrollCarousel('right')}
+                className="absolute right-0 top-0 bottom-0 z-40 w-12 md:w-16 bg-gradient-to-l from-slate-50 to-transparent flex items-center justify-end opacity-0 group-hover/slider:opacity-100 transition-opacity duration-300"
+              >
+                <ChevronRight size={48} className="text-slate-800 hover:scale-110 transition-transform drop-shadow-md mr-[-10px]" />
+              </button>
+  
+              {/* Hide scrollbar completely but allow scrolling */}
+              <style>{`
+                .hide-scrollbar::-webkit-scrollbar { display: none; }
+                .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+              `}</style>
+            </div>
+          )}
         </div>
       )}
 
@@ -394,6 +490,75 @@ const Events: React.FC = () => {
                       <p className="font-sans text-lg leading-relaxed text-slate-600 mb-6">
                         {selectedEvent.description}
                       </p>
+                      
+                      {/* Event Gallery */}
+                      {selectedEvent.gallery_urls && (
+                        <div className="mt-8 pt-8 border-t border-slate-200">
+                          <h3 className="text-xl font-display font-bold text-slate-800 mb-6 flex items-center gap-2">
+                            <ImageIcon size={20} className="text-[#0ea5e9]" /> Event Gallery
+                          </h3>
+                          {(() => {
+                            const urls = selectedEvent.gallery_urls.split(',').map(u => u.trim()).filter(Boolean);
+                            if (urls.length === 0) return null;
+                            
+                            const teamPicUrl = toDirectImageUrl(urls[0]);
+                            const otherPics = urls.slice(1);
+                            
+                            return (
+                              <div className="flex flex-col gap-6">
+                                {/* Team Pic (First Image) */}
+                                {teamPicUrl && (
+                                  <div className="w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm relative group">
+                                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-slate-800 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm z-10 flex items-center gap-2">
+                                      Team Picture
+                                    </div>
+                                    <img 
+                                      src={teamPicUrl} 
+                                      alt="Team" 
+                                      className="w-full h-auto object-cover max-h-[450px]" 
+                                      referrerPolicy="no-referrer"
+                                      onError={(e) => {
+                                        const img = e.currentTarget;
+                                        const match = urls[0].match(/\/d\/([a-zA-Z0-9_-]+)/) || urls[0].match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                                        const fallback = match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000` : null;
+                                        if (fallback && img.src !== fallback) img.src = fallback;
+                                        else img.style.display = 'none';
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                                
+                                {/* Rest of the Event Pics */}
+                                {otherPics.length > 0 && (
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                    {otherPics.map((originalUrl, idx) => {
+                                      const imgUrl = toDirectImageUrl(originalUrl);
+                                      if (!imgUrl) return null;
+                                      return (
+                                        <div key={idx} className="aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200 hover:shadow-md transition-shadow">
+                                          <img 
+                                            src={imgUrl} 
+                                            alt={`Gallery ${idx + 1}`} 
+                                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" 
+                                            referrerPolicy="no-referrer"
+                                            onError={(e) => {
+                                              const img = e.currentTarget;
+                                              const match = originalUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || originalUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                                              const fallback = match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000` : null;
+                                              if (fallback && img.src !== fallback) img.src = fallback;
+                                              else img.style.display = 'none';
+                                            }}
+                                          />
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
                     </div>
 
                     {/* Right Column: Metadata */}
@@ -406,7 +571,7 @@ const Events: React.FC = () => {
                       </div>
                       <div>
                         <span className="text-slate-400">Date: </span>
-                        <span className="font-semibold text-slate-700">{formatDate(selectedEvent.event_date)}</span>
+                        <span className="font-semibold text-slate-700">{formatDate(selectedEvent.event_date, selectedEvent.end_date)}</span>
                       </div>
                       {selectedEvent.partnerships && (
                         <div>
