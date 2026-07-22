@@ -20,11 +20,12 @@ import sponsor4 from '../assets/Sponsors/GfG Horizontal Combination Mark (Light 
 import sponsor6 from '../assets/Sponsors/WhatsApp Image 2025-09-02 at 19.47.04_1d5320e8.jpg';
 import sponsor7 from '../assets/Sponsors/event eye.jpg';
 import sponsor8 from '../assets/Sponsors/growbinar.jpg';
+import sponsor9 from '../assets/Sponsors/Zomato.png';
 import devanshImg from '../assets/Homepage/Review/Devansh Chopra.jpeg';
 import gurmeetImg from '../assets/Homepage/Review/Gurmeet Kaur.jpeg';
 import samarthImg from '../assets/Homepage/Review/Samarth.png';
 
-const sponsorsList = [sponsor1, sponsor2, sponsor3, sponsor4, sponsor6, sponsor7, sponsor8];
+const sponsorsList = [sponsor1, sponsor2, sponsor3, sponsor4, sponsor6, sponsor7, sponsor8, sponsor9];
 import { supabase } from '../lib/supabase';
 
 interface Event {
