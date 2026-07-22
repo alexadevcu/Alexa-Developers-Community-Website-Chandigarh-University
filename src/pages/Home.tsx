@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { ArrowRight, Lightbulb, Rocket, GraduationCap, Users, User, Calendar, Award, Quote } from 'lucide-react';
-import landingWebm from '../assets/Homepage/landing.webm';
+import landingWebm from '../assets/Homepage/Review/Landing.webm';
 import teamGroupPic from '../assets/Homepage/Landinggrouppic.jpg';
 import drAbhishekPic from '../assets/Homepage/Faculty/DrAbhishek_Panday.jpg';
 import jasneetMamPic from '../assets/Homepage/Faculty/Jasneet mam.jpg';
