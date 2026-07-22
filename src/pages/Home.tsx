@@ -422,7 +422,7 @@ const Home = () => {
             { 
               quote: "\"Behind every successful workshop was a team that genuinely cared about creating value for others. We weren't just organizing events—we were creating opportunities for students to discover their passion for technology. Being part of that journey is something I'll always be grateful for.\"", 
               name: "Gurmeet Kaur", 
-              role: "Former Community Manager", 
+              role: "Vice President", 
               avatar: gurmeetImg 
             },
             { 
