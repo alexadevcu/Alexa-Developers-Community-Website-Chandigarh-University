@@ -5,7 +5,26 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="google-site-verification" content="gx5dzQz8bDkwRiZXmMcdPIAXOlXP0nED9xlTdlRexaM" />
-    <title>ADC CU</title>
+    
+    <!-- Primary Meta Tags -->
+    <title>Alexa Developers Community - Chandigarh University (ADC CU)</title>
+    <meta name="title" content="Alexa Developers Community - Chandigarh University (ADC CU)" />
+    <meta name="description" content="The premier tech community in Chandigarh University. Join ADC CU to learn, build, and innovate with Hackathons, Skill Labs, and Mentorship programs." />
+    <meta name="keywords" content="community in chandigarh university, tech club cu, alexa developers community, cu tech club, chandigarh university coding club, hackathons chandigarh university, adc cu, tech community" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://alexa-developers-community-chandigarh-university.vercel.app/" />
+    <meta property="og:title" content="Alexa Developers Community - Chandigarh University" />
+    <meta property="og:description" content="The premier tech community in Chandigarh University. Join ADC CU to learn, build, and innovate." />
+    <meta property="og:image" content="https://alexa-developers-community-chandigarh-university.vercel.app/logo.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://alexa-developers-community-chandigarh-university.vercel.app/" />
+    <meta property="twitter:title" content="Alexa Developers Community - Chandigarh University" />
+    <meta property="twitter:description" content="The premier tech community in Chandigarh University. Join ADC CU to learn, build, and innovate." />
+    <meta property="twitter:image" content="https://alexa-developers-community-chandigarh-university.vercel.app/logo.png" />
     <style>
       #initial-loader {
         position: fixed;
@@ -98,15 +117,22 @@
     </style>
   </head>
   <body>
-    <div id="initial-loader">
+    <noscript>
+      <div style="padding: 20px; font-family: sans-serif;">
+        <h1>Alexa Developers Community - Chandigarh University</h1>
+        <p>Welcome to ADC CU, the premier tech community in Chandigarh University. We organize hackathons, ideathons, skill labs, and mentorship programs to empower student innovation.</p>
+        <p>Enable JavaScript to view our full interactive ecosystem, browse upcoming events, and join the core team.</p>
+      </div>
+    </noscript>
+
+    <div id="initial-loader" aria-hidden="true">
       <div class="loader-ring-wrap">
         <div class="loader-ring-outer"></div>
         <div class="loader-ring-inner"></div>
         <div class="loader-logo">
-          <img src="/logo.png" alt="ADC Loading" />
+          <img src="/logo.png" alt="ADC Logo" />
         </div>
       </div>
-      <p class="loader-text">Loading Ecosystem</p>
     </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://alexa-developers-community-chandigarh-university.vercel.app/sitemap.xml
