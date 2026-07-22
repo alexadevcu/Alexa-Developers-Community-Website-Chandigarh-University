@@ -69,7 +69,7 @@ const Join: React.FC = () => {
           ) : (
             <iframe
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-              src="https://www.youtube.com/embed/qkxuFKqJXWY?start=1136&autoplay=1"
+              src="https://www.youtube.com/embed/Eng0oWg-ECk?autoplay=1"
               title="ADC Showcase"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
