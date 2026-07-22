@@ -20,6 +20,9 @@ import sponsor4 from '../assets/Sponsors/GfG Horizontal Combination Mark (Light 
 import sponsor6 from '../assets/Sponsors/WhatsApp Image 2025-09-02 at 19.47.04_1d5320e8.jpg';
 import sponsor7 from '../assets/Sponsors/event eye.jpg';
 import sponsor8 from '../assets/Sponsors/growbinar.jpg';
+import devanshImg from '../assets/Homepage/Review/Devansh Chopra.jpeg';
+import gurmeetImg from '../assets/Homepage/Review/Gurmeet Kaur.jpeg';
+import samarthImg from '../assets/Homepage/Review/Samarth.png';
 
 const sponsorsList = [sponsor1, sponsor2, sponsor3, sponsor4, sponsor6, sponsor7, sponsor8];
 import { supabase } from '../lib/supabase';
@@ -210,7 +213,7 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { icon: Lightbulb, title: "Workshops", desc: "Deep dives into VUI design and AWS architecture." },
-              { icon: Rocket, title: "Hackathons", desc: "48-hour sprints to build production-ready skills." },
+              { icon: Rocket, title: "Hackathons and Ideathons", desc: "48-hour sprints to build production-ready skills." },
               { icon: GraduationCap, title: "Skill Labs", desc: "Experimental sandbox for generative AI integration." },
               { icon: Users, title: "Mentorship", desc: "Direct feedback loops with Alexa Champions." }
             ].map((item, idx) => (
@@ -358,7 +361,7 @@ const Home = () => {
             {[
               { icon: <Users className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: 500, suffix: '+', label: 'Active Members' },
               { icon: <Calendar className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: 24, suffix: '', label: 'Workshops Hosted' },
-              { icon: <Award className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: 12, suffix: '+', label: 'Hackathons Won' }
+              { icon: <Award className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: 12, suffix: '+', label: 'Hackathons and Ideathons won by team' }
             ].map((stat, i) => (
               <div key={i} className="glass-card p-4 md:p-10 flex flex-col items-center justify-center text-center rounded-[1.5rem] md:rounded-[2rem]">
                 {stat.icon}
@@ -413,19 +416,19 @@ const Home = () => {
               quote: "\"When I first joined, I was just another student curious about technology. A few years later, I had the privilege of leading this incredible community. Watching our workshops fill with eager learners, seeing first-time attendees become organizers, and celebrating every successful event together are memories I'll always cherish. This community shaped me as much as I hope I helped shape it.\"", 
               name: "Devansh Chopra", 
               role: "Former President", 
-              avatar: "https://ui-avatars.com/api/?name=Devansh+Chopra&background=006783&color=fff&size=150" 
+              avatar: devanshImg 
             },
             { 
               quote: "\"Behind every successful workshop was a team that genuinely cared about creating value for others. We weren't just organizing events—we were creating opportunities for students to discover their passion for technology. Being part of that journey is something I'll always be grateful for.\"", 
               name: "Gurmeet Kaur", 
               role: "Former Community Manager", 
-              avatar: "https://ui-avatars.com/api/?name=Gurmeet+Kaur&background=006783&color=fff&size=150" 
+              avatar: gurmeetImg 
             },
             { 
               quote: "\"Even after graduating, I still look back at this community with pride. It wasn't just a club—it was a family that challenged me to grow, supported me when things got difficult, and celebrated every milestone together. The skills I gained here opened doors, but the people I met made the experience unforgettable.\"", 
-              name: "Samarth", 
+              name: "Samarth Maheshwari", 
               role: "Alumni", 
-              avatar: "https://ui-avatars.com/api/?name=Samarth&background=006783&color=fff&size=150" 
+              avatar: samarthImg 
             }
           ].map((testimonial, i) => (
             <div key={i} className="bg-surface-container-low border border-outline-variant/30 rounded-[2.5rem] p-10 flex flex-col h-full hover:-translate-y-2 transition-transform duration-300 shadow-sm hover:shadow-xl">
