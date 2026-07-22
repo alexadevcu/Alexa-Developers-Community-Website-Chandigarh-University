@@ -159,14 +159,14 @@ const Home = () => {
 
 
         {/* Full-width Video Background */}
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-surface">
           <video
             autoPlay
             loop
             muted
             playsInline
             onLoadedData={() => dismissLoader()}
-            className="w-full h-full object-cover object-[80%_center] md:object-center opacity-100"
+            className="w-full h-full object-cover object-[80%_center] md:object-center opacity-100 scale-[1.02]"
           >
             <source src={landingWebm} type="video/webm" />
           </video>
