@@ -29,7 +29,7 @@ interface Event {
 }
 
 const Events: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [heroEvents, setHeroEvents] = useState<Event[]>([]);
   const [heroIndex, setHeroIndex] = useState(0);
   const [carouselEvents, setCarouselEvents] = useState<Event[]>([]);
