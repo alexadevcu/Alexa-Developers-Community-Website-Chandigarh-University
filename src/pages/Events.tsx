@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, ChevronRight, ChevronLeft, Play, Info, X, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -28,6 +29,7 @@ interface Event {
 }
 
 const Events: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [heroEvents, setHeroEvents] = useState<Event[]>([]);
   const [heroIndex, setHeroIndex] = useState(0);
   const [carouselEvents, setCarouselEvents] = useState<Event[]>([]);
@@ -94,6 +96,17 @@ const Events: React.FC = () => {
             
           setHeroEvents(hero);
           setCarouselEvents(past);
+
+          // If there's an eventId in the URL, open its details
+          const eventId = searchParams.get('eventId');
+          if (eventId) {
+            const ev = data.find((e) => e.id === eventId);
+            if (ev) {
+              setSelectedEvent(ev);
+            }
+            // Optionally clear the query param so refreshing doesn't keep opening it, or leave it for shareable links.
+            // Leaving it allows direct linking.
+          }
         }
       } catch (err) {
         console.error("Error fetching events:", err);

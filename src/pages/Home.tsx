@@ -1,8 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
-import { ArrowRight, Lightbulb, Rocket, GraduationCap, Users, User, Calendar, Award, Quote } from 'lucide-react';
+import { ArrowRight, Lightbulb, Rocket, GraduationCap, Users, User, Calendar, Award, Quote, X, Play } from 'lucide-react';
 import landingWebm from '../assets/Homepage/Review/Landing.webm';
 import teamGroupPic from '../assets/Homepage/Landinggrouppic.jpg';
 import drAbhishekPic from '../assets/Homepage/Faculty/DrAbhishek_Panday.jpg';
@@ -34,9 +34,13 @@ interface Event {
   type: string;
   description: string;
   event_date: string;
+  end_date?: string | null;
   poster_url: string;
   registration_link: string;
   status: 'upcoming' | 'completed';
+  is_registration_open?: boolean;
+  partnerships?: string;
+  gallery_urls?: string | null;
 }
 
 
@@ -71,7 +75,14 @@ const staggerContainer: Variants = {
 const Home = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = selectedEvent ? 'hidden' : 'auto';
+    return () => { document.body.style.overflow = 'auto'; };
+  }, [selectedEvent]);
 
   useEffect(() => {
     const updateMousePosition = (e: MouseEvent) => {
@@ -282,7 +293,7 @@ const Home = () => {
               const day = date.getDate();
               const year = date.getFullYear();
               return (
-                <div key={event.id} className="min-w-[75vw] snap-start glass-card rounded-3xl overflow-hidden group cursor-pointer flex flex-col shrink-0" onClick={() => window.location.href='/events'}>
+                <div key={event.id} className="min-w-[75vw] snap-start glass-card rounded-3xl overflow-hidden group cursor-pointer flex flex-col shrink-0" onClick={() => setSelectedEvent(event)}>
                   <div className="h-44 bg-surface-variant relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
                     <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-sm ${event.status === 'upcoming' ? 'bg-surface' : 'bg-surface-dim text-on-surface-variant'}`}>
@@ -318,7 +329,7 @@ const Home = () => {
               const day = date.getDate();
               const year = date.getFullYear();
               return (
-                <div key={event.id} className="glass-card rounded-3xl overflow-hidden group cursor-pointer flex flex-col h-full" onClick={() => window.location.href='/events'}>
+                <div key={event.id} className="glass-card rounded-3xl overflow-hidden group cursor-pointer flex flex-col h-full" onClick={() => setSelectedEvent(event)}>
                   <div className="h-56 bg-surface-variant relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
                     <div className={`absolute top-4 left-4 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-sm ${event.status === 'upcoming' ? 'bg-surface' : 'bg-surface-dim text-on-surface-variant'}`}>
@@ -508,6 +519,113 @@ const Home = () => {
       </section>
       </div>
     </div>
+
+      {/* Event Detail Modal */}
+      <AnimatePresence>
+        {selectedEvent && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              onClick={() => setSelectedEvent(null)}
+              className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Container */}
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-10 pointer-events-none">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="w-full max-w-4xl bg-white rounded-2xl overflow-hidden shadow-2xl pointer-events-auto flex flex-col max-h-[90vh]"
+              >
+                {/* Hero Image */}
+                <div className="relative w-full h-[40vh] md:h-[50vh] shrink-0 bg-slate-100">
+                  <img
+                    src={selectedEvent.poster_url || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop"}
+                    alt={selectedEvent.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent" />
+
+                  {/* Close Button */}
+                  <button
+                    onClick={() => setSelectedEvent(null)}
+                    className="absolute top-4 right-4 w-10 h-10 bg-white/80 hover:bg-white text-slate-800 rounded-full flex items-center justify-center transition-colors shadow-sm z-10"
+                  >
+                    <X size={24} />
+                  </button>
+
+                  {/* Title */}
+                  <div className="absolute bottom-6 left-6 right-6 md:bottom-10 md:left-10">
+                    <h2 className="text-2xl sm:text-3xl md:text-5xl font-display font-black text-slate-800 mb-3 md:mb-4 uppercase drop-shadow-sm">
+                      {selectedEvent.name}
+                    </h2>
+                    <div className="flex flex-wrap items-center gap-4">
+                      {selectedEvent.status === 'upcoming' && selectedEvent.is_registration_open !== false && selectedEvent.registration_link ? (
+                        <a
+                          href={selectedEvent.registration_link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-6 py-2.5 bg-[#0ea5e9] text-white font-bold rounded-xl hover:bg-[#0284c7] transition-colors flex items-center gap-2 shadow-sm"
+                        >
+                          <Play size={20} className="fill-white" /> Register
+                        </a>
+                      ) : (
+                        <button className="px-6 py-2.5 bg-slate-200 text-slate-500 font-bold rounded-xl cursor-not-allowed">
+                          Registration Closed
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-10 text-slate-700">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                    <div className="md:col-span-2">
+                      <div className="flex items-center gap-3 mb-4 font-mono text-sm uppercase font-bold">
+                        <span className="border border-slate-300 text-slate-500 px-2 py-0.5 rounded">{new Date(selectedEvent.event_date).getFullYear()}</span>
+                        <span className="text-[#0ea5e9]">{selectedEvent.type}</span>
+                      </div>
+                      <p className="font-sans text-lg leading-relaxed text-slate-600 mb-6">{selectedEvent.description}</p>
+                    </div>
+                    <div className="flex flex-col gap-4 font-sans text-sm">
+                      <div>
+                        <span className="text-slate-400">Status: </span>
+                        <span className={`capitalize font-semibold ${selectedEvent.status === 'upcoming' ? 'text-emerald-600' : 'text-slate-700'}`}>
+                          {selectedEvent.status}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Date: </span>
+                        <span className="font-semibold text-slate-700">
+                          {new Date(selectedEvent.event_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                          {selectedEvent.end_date && ` – ${new Date(selectedEvent.end_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`}
+                        </span>
+                      </div>
+                      {selectedEvent.partnerships && (
+                        <div>
+                          <span className="text-slate-400">Partnerships: </span>
+                          <span className="font-semibold text-[#0ea5e9]">{selectedEvent.partnerships}</span>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-slate-400">Community: </span>
+                        <span className="font-semibold text-slate-700">ADC CU</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 };

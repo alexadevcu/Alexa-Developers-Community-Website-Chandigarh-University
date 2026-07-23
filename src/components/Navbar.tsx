@@ -39,18 +39,29 @@ const Navbar = () => {
 
           {/* Desktop Nav Links */}
           <div className="hidden md:flex gap-8 items-center">
-            {navLinks.map(link =>
-              link.isHash ? (
+            {navLinks.map(link => {
+              const isActive = !link.isHash && location.pathname === link.to;
+              return link.isHash ? (
                 <a key={link.label} href={link.to} className="text-on-surface-variant hover:text-primary transition-colors font-label-md">{link.label}</a>
               ) : (
-                <Link
-                  key={link.label}
-                  to={link.to}
-                  onClick={(e) => { if (link.to === '/' && location.pathname === '/') { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
-                  className="text-on-surface-variant hover:text-primary transition-colors font-label-md"
-                >{link.label}</Link>
-              )
-            )}
+                <div key={link.label} className="relative pb-1">
+                  <Link
+                    to={link.to}
+                    onClick={(e) => { if (link.to === '/' && location.pathname === '/') { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); } }}
+                    className={`font-label-md transition-all ${isActive ? 'text-[#006783] font-bold' : 'text-on-surface-variant hover:text-[#006783]'}`}
+                  >
+                    {link.label}
+                  </Link>
+                  {isActive && (
+                    <motion.div
+                      layoutId="navbar-indicator"
+                      className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#006783] rounded-full"
+                      style={{ boxShadow: '0 0 8px rgba(0,103,131,0.7)' }}
+                    />
+                  )}
+                </div>
+              );
+            })}
             <button
               onClick={() => setIsContactOpen(true)}
               className="bg-[#006783] text-white px-6 py-2.5 rounded-full font-label-sm uppercase tracking-widest hover:bg-[#004d63] hover:-translate-y-0.5 transition-all shadow-md hover:shadow-lg cursor-pointer"
