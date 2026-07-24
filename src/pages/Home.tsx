@@ -469,7 +469,7 @@ const Home = () => {
               <div className="mb-8">
                 <h2 className="font-headline-xl text-4xl md:text-5xl tracking-tight mb-4 text-center">Faculty Coordinators</h2>
                 <p className="text-[#bce9ff] text-center max-w-2xl mx-auto mb-12 opacity-80 font-body-lg">Guiding the next generation of innovators.</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 max-w-6xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-5xl mx-auto">
                   {[
                     { name: "Er. Shivam sir", title: "Faculty Advisor", image: shivamSirPic },
                     { name: "Er. Prabhneet Singh Sir", title: "Co-Faculty Adviser", image: prabhneetSirPic },
