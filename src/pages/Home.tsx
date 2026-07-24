@@ -471,10 +471,9 @@ const Home = () => {
                 <p className="text-[#bce9ff] text-center max-w-2xl mx-auto mb-12 opacity-80 font-body-lg">Guiding the next generation of innovators.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 max-w-6xl mx-auto">
                   {[
-                    { name: "Dr. Jasneet Kaur Ma'am", title: "Faculty mentor ADC, HOD cse final year CU", image: jasneetMamPic },
-                    { name: "Dr. Abhishek Kumar Sir", title: "Research Mentor", image: drAbhishekPic },
+                    { name: "Er. Shivam sir", title: "Faculty Advisor", image: shivamSirPic },
                     { name: "Er. Prabhneet Singh Sir", title: "Co-Faculty Adviser", image: prabhneetSirPic },
-                    { name: "Er. Shivam sir", title: "Faculty Advisor", image: shivamSirPic }
+                    { name: "Dr. Jasneet Kaur Ma'am", title: "Faculty mentor ADC, HOD cse final year CU", image: jasneetMamPic }
                   ].map((faculty, i) => (
                     <div key={i} className="flex flex-col items-center text-center group cursor-pointer hover:-translate-y-2 transition-transform bg-white/5 p-8 rounded-3xl border border-white/10">
                       <div className="w-32 h-32 rounded-full bg-surface-variant/20 mb-6 border-2 border-[#00caff] relative overflow-hidden shadow-[0_0_20px_rgba(0,202,255,0.2)]">
