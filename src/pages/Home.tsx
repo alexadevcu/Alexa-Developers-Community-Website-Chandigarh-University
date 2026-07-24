@@ -5,7 +5,7 @@ import type { Variants } from 'framer-motion';
 import { ArrowRight, Lightbulb, Rocket, GraduationCap, Users, User, Calendar, Award, Quote, X, Play } from 'lucide-react';
 import landingWebm from '../assets/Homepage/Review/Landing.webm';
 import teamGroupPic from '../assets/Homepage/Landinggrouppic.jpg';
-import drAbhishekPic from '../assets/Homepage/Faculty/DrAbhishek_Panday.jpg';
+// drAbhishekPic import removed temporarily (Abhishek Sir hidden)
 import jasneetMamPic from '../assets/Homepage/Faculty/Jasneet mam.jpg';
 import prabhneetSirPic from '../assets/Homepage/Faculty/Prabhneet sir.jpg';
 import shivamSirPic from '../assets/Homepage/Faculty/Shivam Sir.jpg';
