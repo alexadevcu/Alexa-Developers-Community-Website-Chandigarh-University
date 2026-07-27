@@ -395,7 +395,16 @@ const Home = () => {
             </div>
 
             {/* Left text readability gradient — to ensure text stands out against the video */}
-            <div className="absolute inset-0 bg-surface/80 w-full md:w-[60%] z-0 pointer-events-none" style={{ maskImage: 'linear-gradient(to right, black 50%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, black 50%, transparent 100%)' }} />
+            <div
+              className="absolute inset-0 w-full md:w-[65%] z-0 pointer-events-none"
+              style={{ background: 'linear-gradient(to right, rgba(247, 249, 251, 1) 0%, rgba(247, 249, 251, 0.85) 65%, rgba(247, 249, 251, 0) 100%)' }}
+            />
+
+            {/* Bottom transition gradient to cover video edge and blend seamlessly into sponsors section */}
+            <div
+              className="absolute bottom-0 inset-x-0 h-40 z-10 pointer-events-none"
+              style={{ background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.8) 50%, rgba(255, 255, 255, 1) 100%)' }}
+            />
 
             <motion.div
               initial="hidden" animate="visible" variants={staggerContainer}
@@ -411,17 +420,27 @@ const Home = () => {
           </section>
 
           {/* 3. Sponsors Marquee */}
-          <section className="py-12 border-y border-outline-variant/20 bg-surface-container-lowest overflow-hidden relative">
+          <section className="py-12 bg-white overflow-hidden relative z-10">
             <h3 className="text-center font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 tracking-widest uppercase">Past Sponsors</h3>
-            <div className="absolute inset-y-0 left-0 w-32 bg-surface-container-lowest z-10 pointer-events-none mt-16" style={{ maskImage: 'linear-gradient(to right, black, transparent)', WebkitMaskImage: 'linear-gradient(to right, black, transparent)' }} />
-            <div className="absolute inset-y-0 right-0 w-32 bg-surface-container-lowest z-10 pointer-events-none mt-16" style={{ maskImage: 'linear-gradient(to left, black, transparent)', WebkitMaskImage: 'linear-gradient(to left, black, transparent)' }} />
-            <div className="flex w-max animate-[marquee_20s_linear_infinite] transform-gpu items-center" style={{ willChange: 'transform' }}>
-              {/* We duplicate the array to ensure continuous scrolling without gaps */}
-              {[...sponsorsList, ...sponsorsList].map((imgSrc, i) => (
-                <div key={i} className="mx-8 md:mx-16 flex items-center justify-center shrink-0 hover:scale-105 transition-transform duration-300">
-                  <img src={imgSrc} alt={`Sponsor ${i + 1}`} className="h-10 md:h-14 w-auto object-contain max-w-[150px] md:max-w-[200px]" />
-                </div>
-              ))}
+            <div className="relative w-full overflow-hidden">
+              {/* Pure white fade overlays for left and right edges */}
+              <div
+                className="absolute top-0 bottom-0 left-0 w-16 md:w-32 z-10 pointer-events-none"
+                style={{ background: 'linear-gradient(to right, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%)' }}
+              />
+              <div
+                className="absolute top-0 bottom-0 right-0 w-16 md:w-32 z-10 pointer-events-none"
+                style={{ background: 'linear-gradient(to left, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%)' }}
+              />
+
+              <div className="flex w-max animate-[marquee_20s_linear_infinite] transform-gpu items-center" style={{ willChange: 'transform' }}>
+                {/* We duplicate the array to ensure continuous scrolling without gaps */}
+                {[...sponsorsList, ...sponsorsList].map((imgSrc, i) => (
+                  <div key={i} className="mx-8 md:mx-16 flex items-center justify-center shrink-0 hover:scale-105 transition-transform duration-300">
+                    <img src={imgSrc} alt={`Sponsor ${i + 1}`} className="h-10 md:h-14 w-auto object-contain max-w-[150px] md:max-w-[200px]" />
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
 
