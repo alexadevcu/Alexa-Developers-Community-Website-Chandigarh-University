@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import toast, { Toaster } from 'react-hot-toast';
 import {
   Plus, Trash2, Image as ImageIcon, Calendar, Edit3, X, CheckCircle2,
   Activity, LayoutDashboard, Clock, LogOut, Users, Link as LinkIcon, UserCircle, Archive, Pin
@@ -16,6 +17,10 @@ interface Event {
   end_date?: string | null;
   is_archived?: boolean;
   is_pinned?: boolean;
+  venue?: string | null;
+  why_participate?: string | null;
+  eligibility?: string | null;
+  rules_guidelines?: string | null;
 }
 
 interface Member {
@@ -94,12 +99,40 @@ const Admin: React.FC = () => {
   // ══════════════════════════════════════════════════════════════════════
   const [events, setEvents] = useState<Event[]>([]);
   const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsSearchTerm, setEventsSearchTerm] = useState('');
+  const [eventsStatusFilter, setEventsStatusFilter] = useState<'all' | 'upcoming' | 'completed' | 'archived'>('all');
+  const [eventsSortBy, setEventsSortBy] = useState<'date_desc' | 'date_asc' | 'name'>('date_desc');
   const [eventModalOpen, setEventModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [eventForm, setEventForm] = useState<Partial<Event>>({ status: 'upcoming', is_registration_open: true, is_archived: false, is_pinned: false });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const filteredAndSortedEvents = React.useMemo(() => {
+    let result = events;
+    if (eventsSearchTerm) {
+      const lowerQuery = eventsSearchTerm.toLowerCase();
+      result = result.filter(e => 
+        e.name.toLowerCase().includes(lowerQuery) || 
+        (e.type && e.type.toLowerCase().includes(lowerQuery)) ||
+        (e.venue && e.venue.toLowerCase().includes(lowerQuery))
+      );
+    }
+    if (eventsStatusFilter !== 'all') {
+      if (eventsStatusFilter === 'archived') {
+        result = result.filter(e => e.is_archived);
+      } else {
+        result = result.filter(e => e.status === eventsStatusFilter && !e.is_archived);
+      }
+    }
+    return result.sort((a, b) => {
+      if (eventsSortBy === 'date_desc') return new Date(b.event_date).getTime() - new Date(a.event_date).getTime();
+      if (eventsSortBy === 'date_asc') return new Date(a.event_date).getTime() - new Date(b.event_date).getTime();
+      if (eventsSortBy === 'name') return a.name.localeCompare(b.name);
+      return 0;
+    });
+  }, [events, eventsSearchTerm, eventsStatusFilter, eventsSortBy]);
 
   useEffect(() => { fetchEvents(); }, []);
 
@@ -127,8 +160,11 @@ const Admin: React.FC = () => {
   const handleEventDelete = async (id: string) => {
     if (!window.confirm('Delete this event? Cannot be undone.')) return;
     const { error } = await supabase.from('events').delete().eq('id', id);
-    if (!error) setEvents(prev => prev.filter(e => e.id !== id));
-    else alert('Error: ' + error.message);
+    if (!error) {
+      setEvents(prev => prev.filter(e => e.id !== id));
+      toast.success('Event deleted successfully');
+    }
+    else toast.error('Error: ' + error.message);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,25 +201,34 @@ const Admin: React.FC = () => {
         if (error) throw error;
       }
       setEventModalOpen(false); resetEventForm(); fetchEvents();
-    } catch (err: any) { alert('Error: ' + err.message); }
+      toast.success(editingEventId ? 'Event updated!' : 'Event created!');
+    } catch (err: any) { toast.error('Error: ' + err.message); }
     finally { setIsUploading(false); }
   };
 
   const toggleRegistration = async (id: string, currentStatus: boolean) => {
     const newStatus = !currentStatus;
     const { error } = await supabase.from('events').update({ is_registration_open: newStatus }).eq('id', id);
-    if (!error) setEvents(prev => prev.map(e => e.id === id ? { ...e, is_registration_open: newStatus } : e));
-    else alert('Failed to update: ' + error.message);
+    if (!error) {
+      setEvents(prev => prev.map(e => e.id === id ? { ...e, is_registration_open: newStatus } : e));
+      toast.success(`Registration ${newStatus ? 'opened' : 'closed'}`);
+    } else toast.error('Failed to update: ' + error.message);
   };
 
   const toggleArchive = async (id: string, currentStatus: boolean) => {
     const { error } = await supabase.from('events').update({ is_archived: !currentStatus }).eq('id', id);
-    if (!error) setEvents(prev => prev.map(e => e.id === id ? { ...e, is_archived: !currentStatus } : e));
+    if (!error) {
+      setEvents(prev => prev.map(e => e.id === id ? { ...e, is_archived: !currentStatus } : e));
+      toast.success(`Event ${!currentStatus ? 'archived' : 'unarchived'}`);
+    } else toast.error('Failed to update archive status');
   };
 
   const togglePin = async (id: string, currentStatus: boolean) => {
     const { error } = await supabase.from('events').update({ is_pinned: !currentStatus }).eq('id', id);
-    if (!error) setEvents(prev => prev.map(e => e.id === id ? { ...e, is_pinned: !currentStatus } : e));
+    if (!error) {
+      setEvents(prev => prev.map(e => e.id === id ? { ...e, is_pinned: !currentStatus } : e));
+      toast.success(`Event ${!currentStatus ? 'pinned' : 'unpinned'}`);
+    } else toast.error('Failed to update pin status');
   };
 
   const totalEvents = events.length;
@@ -218,7 +263,15 @@ const Admin: React.FC = () => {
     return result.sort((a, b) => {
       if (teamSortBy === 'order_index') return a.order_index - b.order_index;
       if (teamSortBy === 'name') return a.name.localeCompare(b.name);
-      if (teamSortBy === 'role') return a.role.localeCompare(b.role);
+      if (teamSortBy === 'role') {
+        const getRoleWeight = (cat: string) => {
+          const idx = ROLE_CATEGORIES.findIndex(c => c.value === cat);
+          return idx === -1 ? 999 : idx;
+        };
+        const weightDiff = getRoleWeight(a.role_category) - getRoleWeight(b.role_category);
+        if (weightDiff !== 0) return weightDiff;
+        return a.name.localeCompare(b.name);
+      }
       if (teamSortBy === 'batch_year') return (b.batch_year || '').localeCompare(a.batch_year || '');
       return 0;
     });
@@ -247,8 +300,11 @@ const Admin: React.FC = () => {
   const handleMemberDelete = async (id: string) => {
     if (!window.confirm('Delete this team member? Cannot be undone.')) return;
     const { error } = await supabase.from('team_members').delete().eq('id', id);
-    if (!error) setMembers(prev => prev.filter(m => m.id !== id));
-    else alert('Error: ' + error.message);
+    if (!error) {
+      setMembers(prev => prev.filter(m => m.id !== id));
+      toast.success('Team member deleted');
+    }
+    else toast.error('Error: ' + error.message);
   };
 
   const handleMemberSubmit = async (e: React.FormEvent) => {
@@ -271,9 +327,10 @@ const Admin: React.FC = () => {
         if (error) throw error;
       }
       setMemberModalOpen(false); resetMemberForm(); fetchMembers();
+      toast.success(editingMemberId ? 'Member updated!' : 'Member added!');
     } catch (err: any) { 
       console.error("Submission error:", err);
-      alert('Error saving member: ' + (err.message || JSON.stringify(err))); 
+      toast.error('Error saving member: ' + (err.message || JSON.stringify(err))); 
     } finally {
       setIsMemberSaving(false);
     }
@@ -318,8 +375,11 @@ const Admin: React.FC = () => {
   const handleHofDelete = async (id: string) => {
     if (!window.confirm('Delete this entry? Cannot be undone.')) return;
     const { error } = await supabase.from('hall_of_fame').delete().eq('id', id);
-    if (!error) setHofEntries(prev => prev.filter(e => e.id !== id));
-    else alert('Error: ' + error.message);
+    if (!error) {
+      setHofEntries(prev => prev.filter(e => e.id !== id));
+      toast.success('Hall of Fame entry deleted');
+    }
+    else toast.error('Error: ' + error.message);
   };
 
   const handleHofSubmit = async (e: React.FormEvent) => {
@@ -336,9 +396,10 @@ const Admin: React.FC = () => {
         if (error) throw error;
       }
       setHofModalOpen(false); resetHofForm(); fetchHofEntries();
+      toast.success(editingHofId ? 'Entry updated!' : 'Entry added!');
     } catch (err: any) { 
       console.error("Submission error:", err);
-      alert('Error saving entry: ' + (err.message || JSON.stringify(err))); 
+      toast.error('Error saving entry: ' + (err.message || JSON.stringify(err))); 
     } finally {
       setIsHofSaving(false);
     }
@@ -349,6 +410,7 @@ const Admin: React.FC = () => {
   // ══════════════════════════════════════════════════════════════════════
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-[#0ea5e9]/20 pt-16">
+      <Toaster position="top-right" toastOptions={{ className: 'font-semibold text-sm rounded-xl border border-slate-200 shadow-sm' }} />
 
       {/* Header Bar */}
       <div className="bg-white border-b border-slate-200 px-6 md:px-12 py-4 flex items-center justify-between sticky top-16 z-20">
@@ -404,9 +466,37 @@ const Admin: React.FC = () => {
               ))}
             </div>
 
-            <div className="flex justify-end mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                <input 
+                  type="text" 
+                  placeholder="Search events..." 
+                  value={eventsSearchTerm}
+                  onChange={(e) => setEventsSearchTerm(e.target.value)}
+                  className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/20 outline-none w-full sm:w-64"
+                />
+                <select
+                  value={eventsStatusFilter}
+                  onChange={(e) => setEventsStatusFilter(e.target.value as any)}
+                  className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/20 outline-none w-full sm:w-auto cursor-pointer"
+                >
+                  <option value="all">All Events</option>
+                  <option value="upcoming">Upcoming</option>
+                  <option value="completed">Completed</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <select
+                  value={eventsSortBy}
+                  onChange={(e) => setEventsSortBy(e.target.value as any)}
+                  className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/20 outline-none w-full sm:w-auto cursor-pointer"
+                >
+                  <option value="date_desc">Newest First</option>
+                  <option value="date_asc">Oldest First</option>
+                  <option value="name">Name A-Z</option>
+                </select>
+              </div>
               <button onClick={() => { resetEventForm(); setEventModalOpen(true); }}
-                className="bg-[#0ea5e9] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-[#0284c7] transition-all flex items-center gap-2 shadow-sm">
+                className="bg-[#0ea5e9] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-[#0284c7] transition-all flex items-center gap-2 shadow-sm w-full sm:w-auto justify-center">
                 <Plus size={18} /> Create Event
               </button>
             </div>
@@ -417,12 +507,12 @@ const Admin: React.FC = () => {
                 <div className="col-span-full flex justify-center py-24">
                   <div className="w-10 h-10 border-[3px] border-slate-200 border-t-[#0ea5e9] rounded-full animate-spin" />
                 </div>
-              ) : events.length === 0 ? (
+              ) : filteredAndSortedEvents.length === 0 ? (
                 <div className="col-span-full text-center py-20 bg-white rounded-2xl border border-slate-200">
                   <Calendar size={36} className="text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500 font-semibold">No events yet. Create one above.</p>
+                  <p className="text-slate-500 font-semibold">No events found.</p>
                 </div>
-              ) : events.map(event => (
+              ) : filteredAndSortedEvents.map(event => (
                 <div key={event.id} className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col">
                   <div className="relative h-44 bg-slate-100">
                     <img src={event.poster_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800'}
@@ -678,6 +768,28 @@ const Admin: React.FC = () => {
                       <input type="url" value={eventForm.registration_link || ''} onChange={e => setEventForm({ ...eventForm, registration_link: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
                     </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Venue</label>
+                      <input type="text" value={eventForm.venue || ''} onChange={e => setEventForm({ ...eventForm, venue: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Why Participate? (Optional)</label>
+                    <textarea rows={3} value={eventForm.why_participate || ''} onChange={e => setEventForm({ ...eventForm, why_participate: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none resize-y" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Eligibility (Optional)</label>
+                    <textarea rows={2} value={eventForm.eligibility || ''} onChange={e => setEventForm({ ...eventForm, eligibility: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none resize-y" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Rules & Guidelines (Optional)</label>
+                    <textarea rows={3} value={eventForm.rules_guidelines || ''} onChange={e => setEventForm({ ...eventForm, rules_guidelines: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none resize-y" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Gallery URLs (Comma-separated Google Drive Links)</label>

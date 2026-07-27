@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, ChevronRight, ChevronLeft, Play, Info, X, Image as ImageIcon } from 'lucide-react';
+import { Calendar, ChevronRight, ChevronLeft, Play, Info, X, Image as ImageIcon, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const toDirectImageUrl = (url: string | null): string | null => {
@@ -10,6 +10,243 @@ const toDirectImageUrl = (url: string | null): string | null => {
   if (match) return `https://lh3.googleusercontent.com/d/${match[1]}`;
   return url;
 };
+// â”€â”€ Countdown timer hook â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function useCountdown(targetDate: string | null) {
+  const calc = () => {
+    if (!targetDate) return { d: 0, h: 0, m: 0, s: 0, over: true };
+    const diff = new Date(targetDate).getTime() - Date.now();
+    if (diff <= 0) return { d: 0, h: 0, m: 0, s: 0, over: true };
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    return { d, h, m, s, over: false };
+  };
+  const [time, setTime] = React.useState(calc);
+  React.useEffect(() => {
+    const t = setInterval(() => setTime(calc()), 1000);
+    return () => clearInterval(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetDate]);
+  return time;
+}
+
+// â”€â”€ Event Detail Overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const EventDetailOverlay: React.FC<{ event: Event; onClose: () => void }> = ({ event, onClose }) => {
+  const countdown = useCountdown(event.status === 'upcoming' ? event.end_date || event.event_date : null);
+
+  const defaultEligibility = "Open to all students. Individual based participation";
+  const defaultWhyParticipate = "Expert mentorship and industry relevant themes\nCertificates and networking opportunities\nHosted on campus at Chandigarh University";
+  const defaultVenue = "Chandigarh University, Mohali, Punjab";
+
+
+  const formatDateRange = () => {
+    const start = new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    if (event.end_date) {
+      const end = new Date(event.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return `${start} - ${end}`;
+    }
+    return start;
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
+      />
+
+      {/* Slide-up panel */}
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+        className="fixed inset-x-0 bottom-0 z-50 max-h-[95vh] bg-white rounded-t-3xl overflow-hidden flex flex-col shadow-2xl md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-5xl md:bottom-4 md:rounded-3xl"
+      >
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+          <span className="font-mono text-xs uppercase tracking-widest text-slate-400">Event Details</span>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center transition-colors"
+          >
+            <X size={18} className="text-slate-600" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="flex flex-col md:flex-row gap-0 md:gap-8 p-6 md:p-8">
+
+            {/* Left column */}
+            <div className="flex-1 min-w-0 order-2 md:order-1">
+              <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-6 leading-tight">{event.name}</h1>
+
+              <div className="mb-8">
+                <h2 className="text-lg font-bold text-slate-800 mb-3">About the Event</h2>
+                <p className="text-slate-600 leading-relaxed text-[15px]">{event.description || 'Details coming soon.'}</p>
+              </div>
+
+              <div className="mb-8">
+                <h2 className="text-lg font-bold text-slate-800 mb-3">Why Participate?</h2>
+                <p className="text-slate-600 leading-relaxed text-[15px] whitespace-pre-wrap">
+                  {event.why_participate || defaultWhyParticipate}
+                </p>
+              </div>
+
+              <div className="mb-8">
+                <h2 className="text-lg font-bold text-slate-800 mb-3">Eligibility</h2>
+                <p className="text-slate-600 leading-relaxed text-[15px] whitespace-pre-wrap">
+                  {event.eligibility || defaultEligibility}
+                </p>
+              </div>
+
+              {event.rules_guidelines && (
+                <div className="mb-8">
+                  <h2 className="text-lg font-bold text-slate-800 mb-3">Rules & Guidelines</h2>
+                  <p className="text-slate-600 leading-relaxed text-[15px] whitespace-pre-wrap">
+                    {event.rules_guidelines}
+                  </p>
+                </div>
+              )}
+
+              {event.type && (
+                <div className="border-t border-slate-100 pt-6 mb-6">
+                  <span className="px-3 py-1.5 bg-[#006783]/10 text-[#006783] rounded-full text-sm font-semibold">{event.type}</span>
+                </div>
+              )}
+              
+              <div className="border-t border-slate-100 pt-6 mb-6">
+                <p className="text-xs uppercase tracking-widest text-slate-400 mb-1">Hosted By</p>
+                <p className="text-slate-700 font-semibold">Alexa Developers Community — Chandigarh University</p>
+              </div>
+
+              {event.partnerships && (
+                <div className="mb-6">
+                  <p className="text-xs uppercase tracking-widest text-slate-400 mb-1">In Partnership With</p>
+                  <p className="text-slate-700 font-semibold">{event.partnerships}</p>
+                </div>
+              )}
+
+              {/* Gallery */}
+              {event.gallery_urls && (() => {
+                const urls = event.gallery_urls!.split(',').map(u => u.trim()).filter(Boolean);
+                if (urls.length === 0) return null;
+                const teamPicUrl = toDirectImageUrl(urls[0]);
+                const otherPics = urls.slice(1);
+                return (
+                  <div className="border-t border-slate-100 pt-6">
+                    <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                      <ImageIcon size={18} className="text-[#0ea5e9]" /> Event Gallery
+                    </h2>
+                    <div className="flex flex-col gap-4">
+                      {teamPicUrl && (
+                        <div className="w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200">
+                          <div className="absolute top-4 left-4 bg-white/90 text-slate-800 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm">Team Picture</div>
+                          <img src={teamPicUrl} alt="Team" className="w-full h-auto object-cover max-h-[400px]" referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              const img = e.currentTarget;
+                              const match = urls[0].match(/\/d\/([a-zA-Z0-9_-]+)/) || urls[0].match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                              const fallback = match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000` : null;
+                              if (fallback && img.src !== fallback) img.src = fallback; else img.style.display = 'none';
+                            }} />
+                        </div>
+                      )}
+                      {otherPics.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {otherPics.map((originalUrl, idx) => {
+                            const imgUrl = toDirectImageUrl(originalUrl);
+                            if (!imgUrl) return null;
+                            return (
+                              <div key={idx} className="aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+                                <img src={imgUrl} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer"
+                                  onError={(e) => {
+                                    const img = e.currentTarget;
+                                    const match = originalUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || originalUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                                    const fallback = match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000` : null;
+                                    if (fallback && img.src !== fallback) img.src = fallback; else img.style.display = 'none';
+                                  }} />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+            </div>
+
+            {/* Right sidebar */}
+            <div className="w-full md:w-72 lg:w-80 shrink-0 order-1 md:order-2 mb-6 md:mb-0">
+              <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden bg-slate-100 mb-4 border border-slate-200 shadow-sm">
+                <img
+                  src={toDirectImageUrl(event.poster_url) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop'}
+                  alt={event.name}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-slate-200">
+                  <p className="font-bold text-slate-900 text-sm leading-snug">{event.name}</p>
+                </div>
+                <div className="px-4 py-3 border-b border-slate-200">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Runs From</p>
+                  <p className="text-sm font-semibold text-slate-700">{formatDateRange()}</p>
+                </div>
+                <div className="px-4 py-3 border-b border-slate-200">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Happening</p>
+                  <p className="text-sm font-semibold text-slate-700">{event.venue || defaultVenue}</p>
+                </div>
+                {event.status === 'upcoming' && !countdown.over && (
+                  <div className="px-4 py-3 border-b border-slate-200">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Applications Close In</p>
+                    <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">
+                      {countdown.d}d:{String(countdown.h).padStart(2,'0')}h:{String(countdown.m).padStart(2,'0')}m
+                    </p>
+                  </div>
+                )}
+                {event.status !== 'upcoming' && (
+                  <div className="px-4 py-3 border-b border-slate-200">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Status</p>
+                    <p className="text-sm font-semibold text-slate-500">Event Completed</p>
+                  </div>
+                )}
+                <div className="px-4 py-4">
+                  {event.status === 'upcoming' && event.is_registration_open !== false && event.registration_link ? (
+                    <a
+                      href={event.registration_link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-slate-900 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors text-sm"
+                    >
+                      Register on External Site <ArrowRight size={15} />
+                    </a>
+                  ) : (
+                    <button disabled className="w-full py-3 bg-slate-200 text-slate-400 font-bold rounded-xl text-sm cursor-not-allowed">
+                      Registrations Closed
+                    </button>
+                  )}
+                  <p className="text-center text-[10px] text-slate-400 mt-2">Registrations for this event are managed externally.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </motion.div>
+    </>
+  );
+};
+
 
 interface Event {
   id: string;
@@ -26,6 +263,10 @@ interface Event {
   end_date?: string | null;
   is_archived?: boolean;
   is_pinned?: boolean;
+  venue?: string | null;
+  why_participate?: string | null;
+  eligibility?: string | null;
+  rules_guidelines?: string | null;
 }
 
 const Events: React.FC = () => {
@@ -271,7 +512,7 @@ const Events: React.FC = () => {
               </motion.div>
             </AnimatePresence>
 
-            {/* Netflix-style Slide Controls — arrows + dots, shown on hover */}
+            {/* Netflix-style Slide Controls â€” arrows + dots, shown on hover */}
             {heroEvents.length > 1 && (
               <>
                 {/* Left Arrow */}
@@ -292,7 +533,7 @@ const Events: React.FC = () => {
                   <ChevronRight size={24} strokeWidth={2.5} />
                 </button>
 
-                {/* Dot Indicators — bottom center */}
+                {/* Dot Indicators â€” bottom center */}
                 <div className="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-2 z-30">
                   {heroEvents.map((_, idx) => (
                     <button
@@ -426,184 +667,9 @@ const Events: React.FC = () => {
         </div>
       )}
 
-      {/* --- EXPANDED INFO MODAL (Clean Light Theme) --- */}
+      {/* Rich Event Detail Overlay */}
       <AnimatePresence>
-        {selectedEvent && (
-          <>
-            {/* Modal Backdrop */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              onClick={() => setSelectedEvent(null)}
-              className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm"
-            />
-            
-            {/* Modal Container */}
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-10 pointer-events-none">
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="w-full max-w-4xl bg-white rounded-2xl overflow-hidden shadow-2xl pointer-events-auto flex flex-col max-h-[90vh]"
-              >
-                {/* Modal Header / Hero Image */}
-                <div className="relative w-full h-[40vh] md:h-[50vh] shrink-0 bg-slate-100">
-                  <img 
-                    src={selectedEvent.poster_url || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop"} 
-                    alt={selectedEvent.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent"></div>
-                  
-                  {/* Close Button */}
-                  <button 
-                    onClick={() => setSelectedEvent(null)}
-                    className="absolute top-4 right-4 w-10 h-10 bg-white/80 hover:bg-white text-slate-800 rounded-full flex items-center justify-center transition-colors shadow-sm z-10"
-                  >
-                    <X size={24} />
-                  </button>
-
-                  {/* Modal Title inside Image */}
-                  <div className="absolute bottom-6 left-6 right-6 md:bottom-10 md:left-10">
-                    <h2 className="text-2xl sm:text-3xl md:text-5xl font-display font-black text-slate-800 mb-3 md:mb-4 uppercase drop-shadow-sm">
-                      {selectedEvent.name}
-                    </h2>
-                    <div className="flex flex-wrap items-center gap-4">
-                      {selectedEvent.status === 'upcoming' && selectedEvent.is_registration_open !== false && selectedEvent.registration_link ? (
-                        <a 
-                          href={selectedEvent.registration_link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-6 py-2.5 bg-[#0ea5e9] text-white font-bold rounded-xl hover:bg-[#0284c7] transition-colors flex items-center gap-2 shadow-sm"
-                        >
-                          <Play size={20} className="fill-white" /> Register
-                        </a>
-                      ) : (
-                        <button className="px-6 py-2.5 bg-slate-200 text-slate-500 font-bold rounded-xl cursor-not-allowed">
-                          Registration Closed
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Modal Content Body */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-10 text-slate-700">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-                    
-                    {/* Left Column: Description */}
-                    <div className="md:col-span-2">
-                      <div className="flex items-center gap-3 mb-4 font-mono text-sm uppercase font-bold">
-                        <span className="border border-slate-300 text-slate-500 px-2 py-0.5 rounded">{new Date(selectedEvent.event_date).getFullYear()}</span>
-                        <span className="text-[#0ea5e9]">{selectedEvent.type}</span>
-                      </div>
-                      <p className="font-sans text-lg leading-relaxed text-slate-600 mb-6">
-                        {selectedEvent.description}
-                      </p>
-                      
-                      {/* Event Gallery */}
-                      {selectedEvent.gallery_urls && (
-                        <div className="mt-8 pt-8 border-t border-slate-200">
-                          <h3 className="text-xl font-display font-bold text-slate-800 mb-6 flex items-center gap-2">
-                            <ImageIcon size={20} className="text-[#0ea5e9]" /> Event Gallery
-                          </h3>
-                          {(() => {
-                            const urls = selectedEvent.gallery_urls.split(',').map(u => u.trim()).filter(Boolean);
-                            if (urls.length === 0) return null;
-                            
-                            const teamPicUrl = toDirectImageUrl(urls[0]);
-                            const otherPics = urls.slice(1);
-                            
-                            return (
-                              <div className="flex flex-col gap-6">
-                                {/* Team Pic (First Image) */}
-                                {teamPicUrl && (
-                                  <div className="w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm relative group">
-                                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-slate-800 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm z-10 flex items-center gap-2">
-                                      Team Picture
-                                    </div>
-                                    <img 
-                                      src={teamPicUrl} 
-                                      alt="Team" 
-                                      className="w-full h-auto object-cover max-h-[450px]" 
-                                      referrerPolicy="no-referrer"
-                                      onError={(e) => {
-                                        const img = e.currentTarget;
-                                        const match = urls[0].match(/\/d\/([a-zA-Z0-9_-]+)/) || urls[0].match(/[?&]id=([a-zA-Z0-9_-]+)/);
-                                        const fallback = match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000` : null;
-                                        if (fallback && img.src !== fallback) img.src = fallback;
-                                        else img.style.display = 'none';
-                                      }}
-                                    />
-                                  </div>
-                                )}
-                                
-                                {/* Rest of the Event Pics */}
-                                {otherPics.length > 0 && (
-                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                    {otherPics.map((originalUrl, idx) => {
-                                      const imgUrl = toDirectImageUrl(originalUrl);
-                                      if (!imgUrl) return null;
-                                      return (
-                                        <div key={idx} className="aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200 hover:shadow-md transition-shadow">
-                                          <img 
-                                            src={imgUrl} 
-                                            alt={`Gallery ${idx + 1}`} 
-                                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" 
-                                            referrerPolicy="no-referrer"
-                                            onError={(e) => {
-                                              const img = e.currentTarget;
-                                              const match = originalUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || originalUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-                                              const fallback = match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000` : null;
-                                              if (fallback && img.src !== fallback) img.src = fallback;
-                                              else img.style.display = 'none';
-                                            }}
-                                          />
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Right Column: Metadata */}
-                    <div className="flex flex-col gap-4 font-sans text-sm">
-                      <div>
-                        <span className="text-slate-400">Status: </span>
-                        <span className={`capitalize font-semibold ${selectedEvent.status === 'upcoming' ? 'text-emerald-600' : 'text-slate-700'}`}>
-                          {selectedEvent.status}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400">Date: </span>
-                        <span className="font-semibold text-slate-700">{formatDate(selectedEvent.event_date, selectedEvent.end_date)}</span>
-                      </div>
-                      {selectedEvent.partnerships && (
-                        <div>
-                          <span className="text-slate-400">Partnerships: </span>
-                          <span className="font-semibold text-[#0ea5e9]">{selectedEvent.partnerships}</span>
-                        </div>
-                      )}
-                      <div>
-                        <span className="text-slate-400">Community: </span>
-                        <span className="font-semibold text-slate-700">ADC CU</span>
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          </>
-        )}
+        {selectedEvent && <EventDetailOverlay event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
       </AnimatePresence>
 
     </div>

@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
-import { ArrowRight, Lightbulb, Rocket, GraduationCap, Users, User, Calendar, Award, Quote, X, Play } from 'lucide-react';
+import { ArrowRight, Lightbulb, Rocket, GraduationCap, Users, User, Calendar, Award, Quote, X } from 'lucide-react';
 import landingWebm from '../assets/Homepage/Review/Landing.webm';
 import teamGroupPic from '../assets/Homepage/Landinggrouppic.jpg';
 // drAbhishekPic import removed temporarily (Abhishek Sir hidden)
@@ -41,6 +41,10 @@ interface Event {
   is_registration_open?: boolean;
   partnerships?: string;
   gallery_urls?: string | null;
+  venue?: string | null;
+  why_participate?: string | null;
+  eligibility?: string | null;
+  rules_guidelines?: string | null;
 }
 
 
@@ -72,9 +76,213 @@ const staggerContainer: Variants = {
   visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
 };
 
+// ── Countdown timer hook ────────────────────────────────────────────
+function useCountdown(targetDate: string | null) {
+  const calc = () => {
+    if (!targetDate) return { d: 0, h: 0, m: 0, s: 0, over: true };
+    const diff = new Date(targetDate).getTime() - Date.now();
+    if (diff <= 0) return { d: 0, h: 0, m: 0, s: 0, over: true };
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    return { d, h, m, s, over: false };
+  };
+  const [time, setTime] = useState(calc);
+  useEffect(() => {
+    const t = setInterval(() => setTime(calc()), 1000);
+    return () => clearInterval(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetDate]);
+  return time;
+}
+
+// ── Event Detail Overlay ─────────────────────────────────────────────
+const EventDetailOverlay: React.FC<{ event: Event; onClose: () => void }> = ({ event, onClose }) => {
+  const countdown = useCountdown(event.status === 'upcoming' ? event.end_date || event.event_date : null);
+
+  const defaultEligibility = "Open to all students. Individual based participation";
+  const defaultWhyParticipate = "Expert mentorship and industry relevant themes\nCertificates and networking opportunities\nHosted on campus at Chandigarh University";
+  const defaultVenue = "Chandigarh University, Mohali, Punjab";
+
+  const formatDateRange = () => {
+    const start = new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    if (event.end_date) {
+      const end = new Date(event.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return `${start} – ${end}`;
+    }
+    return start;
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
+      />
+
+      {/* Slide-up panel */}
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+        className="fixed inset-x-0 bottom-0 z-50 max-h-[95vh] bg-white rounded-t-3xl overflow-hidden flex flex-col shadow-2xl md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-5xl md:bottom-4 md:rounded-3xl"
+      >
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+          <span className="font-mono text-xs uppercase tracking-widest text-slate-400">Event Details</span>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center transition-colors"
+          >
+            <X size={18} className="text-slate-600" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="flex flex-col md:flex-row gap-0 md:gap-8 p-6 md:p-8">
+
+            {/* Left column: text content */}
+            <div className="flex-1 min-w-0 order-2 md:order-1">
+              <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-6 leading-tight">{event.name}</h1>
+
+              {/* About the Event */}
+              <div className="mb-8">
+                <h2 className="text-lg font-bold text-slate-800 mb-3">About the Event</h2>
+                <p className="text-slate-600 leading-relaxed text-[15px]">{event.description || 'Details coming soon.'}</p>
+              </div>
+
+              <div className="mb-8">
+                <h2 className="text-lg font-bold text-slate-800 mb-3">Why Participate?</h2>
+                <p className="text-slate-600 leading-relaxed text-[15px] whitespace-pre-wrap">
+                  {event.why_participate || defaultWhyParticipate}
+                </p>
+              </div>
+
+              <div className="mb-8">
+                <h2 className="text-lg font-bold text-slate-800 mb-3">Eligibility</h2>
+                <p className="text-slate-600 leading-relaxed text-[15px] whitespace-pre-wrap">
+                  {event.eligibility || defaultEligibility}
+                </p>
+              </div>
+
+              {event.rules_guidelines && (
+                <div className="mb-8">
+                  <h2 className="text-lg font-bold text-slate-800 mb-3">Rules & Guidelines</h2>
+                  <p className="text-slate-600 leading-relaxed text-[15px] whitespace-pre-wrap">
+                    {event.rules_guidelines}
+                  </p>
+                </div>
+              )}
+
+              {/* Event Type */}
+              {event.type && (
+                <div className="border-t border-slate-100 pt-6 mb-6">
+                  <span className="px-3 py-1.5 bg-[#006783]/10 text-[#006783] rounded-full text-sm font-semibold">
+                    {event.type}
+                  </span>
+                </div>
+              )}
+
+              {/* Hosted By */}
+              <div className="border-t border-slate-100 pt-6 mb-6">
+                <p className="text-xs uppercase tracking-widest text-slate-400 mb-1">Hosted By</p>
+                <p className="text-slate-700 font-semibold">Alexa Developers Community — Chandigarh University</p>
+              </div>
+
+              {/* Partnerships */}
+              {event.partnerships && (
+                <div className="mb-6">
+                  <p className="text-xs uppercase tracking-widest text-slate-400 mb-1">In Partnership With</p>
+                  <p className="text-slate-700 font-semibold">{event.partnerships}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Right sidebar */}
+            <div className="w-full md:w-72 lg:w-80 shrink-0 order-1 md:order-2 mb-6 md:mb-0">
+              {/* Poster */}
+              <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden bg-slate-100 mb-4 border border-slate-200 shadow-sm">
+                <img
+                  src={event.poster_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop'}
+                  alt={event.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {/* Meta box */}
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
+                {/* Event name */}
+                <div className="px-4 py-3 border-b border-slate-200">
+                  <p className="font-bold text-slate-900 text-sm leading-snug">{event.name}</p>
+                </div>
+
+                {/* Dates */}
+                <div className="px-4 py-3 border-b border-slate-200">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Runs From</p>
+                  <p className="text-sm font-semibold text-slate-700">{formatDateRange()}</p>
+                </div>
+
+                {/* Venue */}
+                <div className="px-4 py-3 border-b border-slate-200">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Happening</p>
+                  <p className="text-sm font-semibold text-slate-700">{event.venue || defaultVenue}</p>
+                </div>
+
+                {/* Countdown */}
+                {event.status === 'upcoming' && !countdown.over && (
+                  <div className="px-4 py-3 border-b border-slate-200">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Applications Close In</p>
+                    <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">
+                      {countdown.d}d:{String(countdown.h).padStart(2,'0')}h:{String(countdown.m).padStart(2,'0')}m
+                    </p>
+                  </div>
+                )}
+                {event.status !== 'upcoming' && (
+                  <div className="px-4 py-3 border-b border-slate-200">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Status</p>
+                    <p className="text-sm font-semibold text-slate-500">Event Completed</p>
+                  </div>
+                )}
+
+                {/* CTA */}
+                <div className="px-4 py-4">
+                  {event.status === 'upcoming' && event.is_registration_open !== false && event.registration_link ? (
+                    <a
+                      href={event.registration_link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-slate-900 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors text-sm"
+                    >
+                      Register on External Site <ArrowRight size={15} />
+                    </a>
+                  ) : (
+                    <button disabled className="w-full py-3 bg-slate-200 text-slate-400 font-bold rounded-xl text-sm cursor-not-allowed">
+                      Registrations Closed
+                    </button>
+                  )}
+                  <p className="text-center text-[10px] text-slate-400 mt-2">Registrations for this event are managed externally.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </motion.div>
+    </>
+  );
+};
+
 const Home = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [totalEvents, setTotalEvents] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
@@ -99,9 +307,11 @@ const Home = () => {
         .select('*');
 
       if (data) {
-        const upcoming = data.filter(e => e.status === 'upcoming').sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
-        const past = data.filter(e => e.status !== 'upcoming').sort((a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime());
+        const active = data.filter(e => !e.is_archived);
+        const upcoming = active.filter(e => e.status === 'upcoming').sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
+        const past = active.filter(e => e.status !== 'upcoming').sort((a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime());
         setUpcomingEvents([...upcoming, ...past].slice(0, 3));
+        setTotalEvents(data.length);
       }
     };
 
@@ -185,7 +395,7 @@ const Home = () => {
             </div>
 
             {/* Left text readability gradient — to ensure text stands out against the video */}
-            <div className="absolute inset-0 bg-gradient-to-r from-surface via-surface/80 to-transparent w-full md:w-[70%] z-0 pointer-events-none" />
+            <div className="absolute inset-0 bg-surface/80 w-full md:w-[60%] z-0 pointer-events-none" style={{ maskImage: 'linear-gradient(to right, black 50%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, black 50%, transparent 100%)' }} />
 
             <motion.div
               initial="hidden" animate="visible" variants={staggerContainer}
@@ -202,9 +412,9 @@ const Home = () => {
 
           {/* 3. Sponsors Marquee */}
           <section className="py-12 border-y border-outline-variant/20 bg-surface-container-lowest overflow-hidden relative">
-            <h3 className="text-center font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 tracking-widest uppercase">Past Sponsers</h3>
-            <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-surface-container-lowest to-transparent z-10 pointer-events-none mt-16" />
-            <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-surface-container-lowest to-transparent z-10 pointer-events-none mt-16" />
+            <h3 className="text-center font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 tracking-widest uppercase">Past Sponsors</h3>
+            <div className="absolute inset-y-0 left-0 w-32 bg-surface-container-lowest z-10 pointer-events-none mt-16" style={{ maskImage: 'linear-gradient(to right, black, transparent)', WebkitMaskImage: 'linear-gradient(to right, black, transparent)' }} />
+            <div className="absolute inset-y-0 right-0 w-32 bg-surface-container-lowest z-10 pointer-events-none mt-16" style={{ maskImage: 'linear-gradient(to left, black, transparent)', WebkitMaskImage: 'linear-gradient(to left, black, transparent)' }} />
             <div className="flex w-max animate-[marquee_20s_linear_infinite] transform-gpu items-center" style={{ willChange: 'transform' }}>
               {/* We duplicate the array to ensure continuous scrolling without gaps */}
               {[...sponsorsList, ...sponsorsList].map((imgSrc, i) => (
@@ -273,7 +483,7 @@ const Home = () => {
             </div>
           </section>
 
-          {/* 6. Events Organized */}
+          {/* 6. Community Events */}
           <section id="events" className="py-20 px-4 bg-transparent relative z-10">
             <div className="max-w-container-max mx-auto">
               <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
@@ -285,7 +495,7 @@ const Home = () => {
                 </Link>
               </div>
 
-              {/* Mobile: horizontal Netflix-style scroll */}
+              {/* Mobile: horizontal scroll */}
               <div className="md:hidden flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 {upcomingEvents.length > 0 ? upcomingEvents.map((event) => {
                   const date = new Date(event.event_date);
@@ -358,7 +568,6 @@ const Home = () => {
                   </div>
                 )}
               </div>
-
             </div>
           </section>
 
@@ -369,10 +578,10 @@ const Home = () => {
                 <h2 className="font-headline-xl text-4xl md:text-5xl tracking-tight text-on-surface mb-4">By the Numbers</h2>
                 <p className="font-body-lg text-on-surface-variant text-lg">Measurable impact across the university ecosystem.</p>
               </div>
-              <div className="grid grid-cols-3 gap-3 md:gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8">
                 {[
                   { icon: <Users className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: 1500, suffix: '+', label: 'Active Members' },
-                  { icon: <Calendar className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: 24, suffix: '', label: 'Workshops Hosted' },
+                  { icon: <Calendar className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: totalEvents + 24, suffix: '', label: 'Events Hosted' },
                   { icon: <Award className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: 12, suffix: '+', label: 'Hackathons and Ideathons won by team' }
                 ].map((stat, i) => (
                   <div key={i} className="glass-card p-4 md:p-10 flex flex-col items-center justify-center text-center rounded-[1.5rem] md:rounded-[2rem]">
@@ -519,111 +728,9 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Event Detail Modal */}
+      {/* Rich Event Detail Overlay */}
       <AnimatePresence>
-        {selectedEvent && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              onClick={() => setSelectedEvent(null)}
-              className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm"
-            />
-
-            {/* Modal Container */}
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-10 pointer-events-none">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="w-full max-w-4xl bg-white rounded-2xl overflow-hidden shadow-2xl pointer-events-auto flex flex-col max-h-[90vh]"
-              >
-                {/* Hero Image */}
-                <div className="relative w-full h-[40vh] md:h-[50vh] shrink-0 bg-slate-100">
-                  <img
-                    src={selectedEvent.poster_url || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop"}
-                    alt={selectedEvent.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent" />
-
-                  {/* Close Button */}
-                  <button
-                    onClick={() => setSelectedEvent(null)}
-                    className="absolute top-4 right-4 w-10 h-10 bg-white/80 hover:bg-white text-slate-800 rounded-full flex items-center justify-center transition-colors shadow-sm z-10"
-                  >
-                    <X size={24} />
-                  </button>
-
-                  {/* Title */}
-                  <div className="absolute bottom-6 left-6 right-6 md:bottom-10 md:left-10">
-                    <h2 className="text-2xl sm:text-3xl md:text-5xl font-display font-black text-slate-800 mb-3 md:mb-4 uppercase drop-shadow-sm">
-                      {selectedEvent.name}
-                    </h2>
-                    <div className="flex flex-wrap items-center gap-4">
-                      {selectedEvent.status === 'upcoming' && selectedEvent.is_registration_open !== false && selectedEvent.registration_link ? (
-                        <a
-                          href={selectedEvent.registration_link}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-6 py-2.5 bg-[#0ea5e9] text-white font-bold rounded-xl hover:bg-[#0284c7] transition-colors flex items-center gap-2 shadow-sm"
-                        >
-                          <Play size={20} className="fill-white" /> Register
-                        </a>
-                      ) : (
-                        <button className="px-6 py-2.5 bg-slate-200 text-slate-500 font-bold rounded-xl cursor-not-allowed">
-                          Registration Closed
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-10 text-slate-700">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-                    <div className="md:col-span-2">
-                      <div className="flex items-center gap-3 mb-4 font-mono text-sm uppercase font-bold">
-                        <span className="border border-slate-300 text-slate-500 px-2 py-0.5 rounded">{new Date(selectedEvent.event_date).getFullYear()}</span>
-                        <span className="text-[#0ea5e9]">{selectedEvent.type}</span>
-                      </div>
-                      <p className="font-sans text-lg leading-relaxed text-slate-600 mb-6">{selectedEvent.description}</p>
-                    </div>
-                    <div className="flex flex-col gap-4 font-sans text-sm">
-                      <div>
-                        <span className="text-slate-400">Status: </span>
-                        <span className={`capitalize font-semibold ${selectedEvent.status === 'upcoming' ? 'text-emerald-600' : 'text-slate-700'}`}>
-                          {selectedEvent.status}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400">Date: </span>
-                        <span className="font-semibold text-slate-700">
-                          {new Date(selectedEvent.event_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                          {selectedEvent.end_date && ` – ${new Date(selectedEvent.end_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`}
-                        </span>
-                      </div>
-                      {selectedEvent.partnerships && (
-                        <div>
-                          <span className="text-slate-400">Partnerships: </span>
-                          <span className="font-semibold text-[#0ea5e9]">{selectedEvent.partnerships}</span>
-                        </div>
-                      )}
-                      <div>
-                        <span className="text-slate-400">Community: </span>
-                        <span className="font-semibold text-slate-700">ADC CU</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          </>
-        )}
+        {selectedEvent && <EventDetailOverlay event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
       </AnimatePresence>
     </>
   );

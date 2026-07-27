@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # -----------------------------------------------------
+  # Production service (Optimized Nginx build)
+  # Run with: docker compose up app-prod
+  # -----------------------------------------------------
+  app-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    profiles:
+      - prod
+
+  # -----------------------------------------------------
+  # Development service (Vite hot-reloading)
+  # Run with: docker compose up app-dev
+  # -----------------------------------------------------
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5174:5173" # Mapped to 5174 to avoid conflicting with your local 5173
+    volumes:
+      - .:/app
+      - /app/node_modules # Prevents local node_modules from overwriting container's
+    environment:
+      - NODE_ENV=development
+    profiles:
+      - dev
