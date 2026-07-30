@@ -83,9 +83,9 @@ const Footer: React.FC = () => {
             <h3 className="text-white font-headline-sm font-bold uppercase tracking-widest text-sm opacity-90">Direct Comm</h3>
             <div className="flex flex-col space-y-6">
               <div className="flex flex-col group">
-                <a href="mailto:hello.alexacu@gmail.com" className="text-white font-sans text-sm font-medium group-hover:text-[#00caff] transition-colors duration-300 flex items-center gap-2">
+                <a href="mailto:adc.cu@cumail.in" className="text-white font-sans text-sm font-medium group-hover:text-[#00caff] transition-colors duration-300 flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-[#00caff] animate-pulse" />
-                  hello.alexacu@gmail.com
+                  adc.cu@cumail.in
                 </a>
                 <span className="text-[#bce9ff]/50 text-xs mt-2">Mentor outreach and support</span>
               </div>
