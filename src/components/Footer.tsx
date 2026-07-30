@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowUpRight } from 'lucide-react';
 import logo from '../assets/Alexa Circular logo.png';
 import cuLogo from '../assets/CU Logo red &white.png';
 
@@ -62,7 +63,7 @@ const Footer: React.FC = () => {
                   <div className="p-2 bg-white/5 rounded-lg group-hover:bg-[#00caff]/20 transition-colors">
                     <LinkedinIcon className="w-4 h-4" />
                   </div>
-                  <span>LinkedIn ↗</span>
+                  <span className="inline-flex items-center gap-1">LinkedIn <ArrowUpRight className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" /></span>
                 </span>
                 <span className="text-[#bce9ff]/50 text-xs mt-2 ml-11">Professional updates & events</span>
               </a>
@@ -71,7 +72,7 @@ const Footer: React.FC = () => {
                   <div className="p-2 bg-white/5 rounded-lg group-hover:bg-[#00caff]/20 transition-colors">
                     <InstagramIcon className="w-4 h-4" />
                   </div>
-                  <span>Instagram ↗</span>
+                  <span className="inline-flex items-center gap-1">Instagram <ArrowUpRight className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" /></span>
                 </span>
                 <span className="text-[#bce9ff]/50 text-xs mt-2 ml-11">Campus workshops & BTS</span>
               </a>
@@ -128,8 +129,18 @@ const Footer: React.FC = () => {
             </div>
             <div className="hidden md:block w-px h-12 bg-white/10"></div>
             <div className="flex flex-col items-center md:items-start">
-              <span className="text-[#bce9ff]/50 font-mono text-[10px] uppercase tracking-[0.1em] mb-1">Engineered by the</span>
-              <span className="text-[#00caff] font-bold text-sm tracking-wide">ADC Core Team</span>
+              <span className="text-[#bce9ff]/50 font-mono text-[10px] uppercase tracking-[0.1em] mb-1">Engineered under</span>
+              <span className="text-sm font-bold tracking-wide text-[#00caff]">
+                <a
+                  href="https://linktr.ee/vasu_gera"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-white hover:underline transition-colors"
+                >
+                  Vasu Gera
+                </a>{' '}
+                <span className="text-[#bce9ff]/70 font-normal">&</span> ADC Core Team
+              </span>
             </div>
           </div>
         </div>
