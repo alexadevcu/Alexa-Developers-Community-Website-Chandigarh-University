@@ -105,6 +105,7 @@ const Footer: React.FC = () => {
                 { label: 'Home', href: '/' },
                 { label: 'Events', href: '/events' },
                 { label: 'Team', href: '/team' },
+                { label: 'Legacy', href: '/legacy' },
                 { label: 'Join', href: '/join' },
                 { label: 'Hall of Fame', href: '/hall-of-fame' },
               ].map(({ label, href }) => (

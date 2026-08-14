@@ -20,6 +20,7 @@ const Navbar = () => {
     { label: 'Home', to: '/', isHash: false },
     { label: 'Events', to: '/events', isHash: false },
     { label: 'Team', to: '/team', isHash: false },
+    { label: 'Legacy', to: '/legacy', isHash: false },
     { label: 'Hall of Fame', to: '/hall-of-fame', isHash: false },
   ];
 

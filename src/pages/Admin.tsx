@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
 import {
   Plus, Trash2, Image as ImageIcon, Calendar, Edit3, X, CheckCircle2,
-  Activity, LayoutDashboard, Clock, LogOut, Users, Link as LinkIcon, UserCircle, Archive, Pin
+  Activity, LayoutDashboard, Clock, LogOut, Users, Link as LinkIcon, UserCircle, Archive, Pin, History
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -36,6 +36,23 @@ interface HallOfFameEntry {
   event_name: string;
   photo_url: string | null;
   category: 'achievement' | 'representation';
+  order_index: number;
+  created_at?: string;
+}
+
+interface LegacyMember {
+  id: string;
+  name: string;
+  role: 'President' | 'Vice President';
+  tenure: string;
+  company: string;
+  company_role: string;
+  location: string;
+  photo_url?: string | null;
+  linkedin_url?: string | null;
+  quote?: string | null;
+  bio: string;
+  key_contributions: string;
   order_index: number;
   created_at?: string;
 }
@@ -86,7 +103,7 @@ const MemberAvatar: React.FC<{ url: string | null; name: string; size?: string }
 // ─────────────────────────────────────────────────────────────────────────────
 const Admin: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'events' | 'team' | 'hall_of_fame'>('events');
+  const [activeTab, setActiveTab] = useState<'events' | 'team' | 'hall_of_fame' | 'legacy'>('events');
 
   // ── Auth ──
   const handleLogout = async () => {
@@ -138,7 +155,7 @@ const Admin: React.FC = () => {
 
   const fetchEvents = async () => {
     setEventsLoading(true);
-    const { data, error } = await supabase.from('events').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('events').select('*').order('created_at', { ascending: false }).limit(500);
     if (!error && data) setEvents(data);
     setEventsLoading(false);
   };
@@ -169,8 +186,18 @@ const Admin: React.FC = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
-      setSelectedFile(e.target.files[0]);
-      setPreviewUrl(URL.createObjectURL(e.target.files[0]));
+      const file = e.target.files[0];
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        toast.error('Invalid file type. Please upload a JPEG, PNG, or WEBP image.');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size exceeds 5MB limit.');
+        return;
+      }
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
     }
   };
 
@@ -281,7 +308,7 @@ const Admin: React.FC = () => {
 
   const fetchMembers = async () => {
     setMembersLoading(true);
-    const { data, error } = await supabase.from('team_members').select('*').order('order_index', { ascending: true });
+    const { data, error } = await supabase.from('team_members').select('*').order('order_index', { ascending: true }).limit(500);
     if (!error && data) setMembers(data);
     setMembersLoading(false);
   };
@@ -356,7 +383,7 @@ const Admin: React.FC = () => {
 
   const fetchHofEntries = async () => {
     setHofLoading(true);
-    const { data, error } = await supabase.from('hall_of_fame').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('hall_of_fame').select('*').order('created_at', { ascending: false }).limit(500);
     if (!error && data) setHofEntries(data);
     setHofLoading(false);
   };
@@ -406,6 +433,159 @@ const Admin: React.FC = () => {
   };
 
   // ══════════════════════════════════════════════════════════════════════
+  //  LEGACY MEMBERS STATE & LOGIC
+  // ══════════════════════════════════════════════════════════════════════
+  const [legacyMembers, setLegacyMembers] = useState<LegacyMember[]>([]);
+  const [legacyLoading, setLegacyLoading] = useState(true);
+  const [legacySearchTerm, setLegacySearchTerm] = useState('');
+  const [legacyRoleFilter, setLegacyRoleFilter] = useState<'all' | 'President' | 'Vice President'>('all');
+  const [legacyModalOpen, setLegacyModalOpen] = useState(false);
+  const [isLegacySaving, setIsLegacySaving] = useState(false);
+  const [editingLegacyId, setEditingLegacyId] = useState<string | null>(null);
+  const [legacyForm, setLegacyForm] = useState<Partial<LegacyMember>>({
+    role: 'President',
+    tenure: '2023 - 2024',
+    company: '',
+    company_role: '',
+    location: 'Bengaluru, India',
+    order_index: 0
+  });
+  const [legacyPhotoPreview, setLegacyPhotoPreview] = useState<string | null>(null);
+
+  const fetchLegacyMembers = async () => {
+    try {
+      setLegacyLoading(true);
+      const { data, error } = await supabase
+        .from('legacy_members')
+        .select('*')
+        .order('order_index', { ascending: true })
+        .limit(500);
+      if (!error && data) setLegacyMembers(data);
+    } catch (err) {
+      console.error('Error fetching legacy members:', err);
+    } finally {
+      setLegacyLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLegacyMembers();
+  }, []);
+
+  const resetLegacyForm = () => {
+    setLegacyForm({
+      name: '',
+      role: 'President',
+      tenure: '2023 - 2024',
+      company: '',
+      company_role: '',
+      location: 'Bengaluru, India',
+      photo_url: '',
+      linkedin_url: '',
+      quote: '',
+      bio: '',
+      key_contributions: '',
+      order_index: 0
+    });
+    setLegacyPhotoPreview(null);
+    setEditingLegacyId(null);
+  };
+
+  const handleLegacyEdit = (member: LegacyMember) => {
+    setLegacyForm({ ...member });
+    setLegacyPhotoPreview(toDirectImageUrl(member.photo_url || null));
+    setEditingLegacyId(member.id);
+    setLegacyModalOpen(true);
+  };
+
+  const handleLegacyDelete = async (id: string) => {
+    if (!window.confirm('Delete this Legacy member? Cannot be undone.')) return;
+    const { error } = await supabase.from('legacy_members').delete().eq('id', id);
+    if (!error) {
+      setLegacyMembers(prev => prev.filter(m => m.id !== id));
+      toast.success('Legacy member deleted');
+    } else {
+      toast.error('Error deleting member: ' + error.message);
+    }
+  };
+
+  const handleLegacySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsLegacySaving(true);
+
+      // Rule Validation Check:
+      // President: 1 per year/tenure
+      // Vice President: max 2 per year/tenure
+      const sameTenureMembers = legacyMembers.filter(
+        m => m.tenure.trim().toLowerCase() === (legacyForm.tenure || '').trim().toLowerCase() && m.id !== editingLegacyId
+      );
+
+      if (legacyForm.role === 'President') {
+        const existingPresident = sameTenureMembers.find(m => m.role === 'President');
+        if (existingPresident) {
+          toast(`Note: ${existingPresident.name} is already listed as President for ${legacyForm.tenure}.`, { icon: 'ℹ️' });
+        }
+      } else if (legacyForm.role === 'Vice President') {
+        const existingVPs = sameTenureMembers.filter(m => m.role === 'Vice President');
+        if (existingVPs.length >= 2) {
+          toast(`Note: There are already ${existingVPs.length} Vice Presidents listed for ${legacyForm.tenure}.`, { icon: 'ℹ️' });
+        }
+      }
+
+      const payload = {
+        name: legacyForm.name,
+        role: legacyForm.role,
+        tenure: legacyForm.tenure,
+        company: legacyForm.company,
+        company_role: legacyForm.company_role,
+        location: legacyForm.location,
+        photo_url: legacyForm.photo_url || null,
+        linkedin_url: legacyForm.linkedin_url || null,
+        quote: legacyForm.quote || null,
+        bio: legacyForm.bio,
+        key_contributions: legacyForm.key_contributions || '',
+        order_index: legacyForm.order_index ?? 0
+      };
+
+      if (editingLegacyId) {
+        const { error } = await supabase.from('legacy_members').update(payload).eq('id', editingLegacyId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('legacy_members').insert([payload]);
+        if (error) throw error;
+      }
+
+      setLegacyModalOpen(false);
+      resetLegacyForm();
+      fetchLegacyMembers();
+      toast.success(editingLegacyId ? 'Legacy member updated!' : 'Legacy member added!');
+    } catch (err: any) {
+      console.error('Submission error:', err);
+      toast.error('Error saving entry: ' + (err.message || JSON.stringify(err)));
+    } finally {
+      setIsLegacySaving(false);
+    }
+  };
+
+  const filteredLegacyMembers = React.useMemo(() => {
+    let result = legacyMembers;
+    if (legacySearchTerm) {
+      const q = legacySearchTerm.toLowerCase();
+      result = result.filter(m =>
+        m.name.toLowerCase().includes(q) ||
+        m.company.toLowerCase().includes(q) ||
+        m.company_role.toLowerCase().includes(q) ||
+        m.tenure.toLowerCase().includes(q)
+      );
+    }
+    if (legacyRoleFilter !== 'all') {
+      result = result.filter(m => m.role === legacyRoleFilter);
+    }
+    return result;
+  }, [legacyMembers, legacySearchTerm, legacyRoleFilter]);
+
+  // ══════════════════════════════════════════════════════════════════════
   //  RENDER
   // ══════════════════════════════════════════════════════════════════════
   return (
@@ -428,10 +608,11 @@ const Admin: React.FC = () => {
         {[
           { key: 'events', label: 'Events', icon: Calendar },
           { key: 'team', label: 'Team', icon: Users },
+          { key: 'legacy', label: 'Legacy', icon: History },
           { key: 'hall_of_fame', label: 'Hall of Fame', icon: Activity },
         ].map(({ key, label, icon: Icon }) => (
           <button key={key}
-            onClick={() => setActiveTab(key as 'events' | 'team' | 'hall_of_fame')}
+            onClick={() => setActiveTab(key as any)}
             className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all ${
               activeTab === key
                 ? 'border-[#0ea5e9] text-[#0ea5e9]'
@@ -695,6 +876,80 @@ const Admin: React.FC = () => {
                   <div className="flex gap-1 flex-shrink-0">
                     <button onClick={() => handleHofEdit(entry)} className="text-slate-400 hover:text-[#0ea5e9] p-1.5 rounded hover:bg-slate-50 transition-colors"><Edit3 size={16} /></button>
                     <button onClick={() => handleHofDelete(entry.id)} className="text-slate-400 hover:text-red-500 p-1.5 rounded hover:bg-slate-50 transition-colors"><Trash2 size={16} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ── LEGACY TAB ─────────────────────────────────────────── */}
+        {activeTab === 'legacy' && (
+          <>
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                <input
+                  type="text"
+                  placeholder="Search by name, company, tenure..."
+                  value={legacySearchTerm}
+                  onChange={(e) => setLegacySearchTerm(e.target.value)}
+                  className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:border-[#0ea5e9] outline-none w-full sm:w-72"
+                />
+                <select
+                  value={legacyRoleFilter}
+                  onChange={(e) => setLegacyRoleFilter(e.target.value as any)}
+                  className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:border-[#0ea5e9] outline-none w-full sm:w-auto cursor-pointer"
+                >
+                  <option value="all">All Roles</option>
+                  <option value="President">Presidents</option>
+                  <option value="Vice President">Vice Presidents</option>
+                </select>
+              </div>
+              <button onClick={() => { resetLegacyForm(); setLegacyModalOpen(true); }}
+                className="bg-[#0ea5e9] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-[#0284c7] transition-all flex items-center gap-2 shadow-sm w-full sm:w-auto justify-center">
+                <Plus size={18} /> Add Legacy Member
+              </button>
+            </div>
+
+            {/* Legacy Members Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {legacyLoading ? (
+                <div className="col-span-full flex justify-center py-24">
+                  <div className="w-10 h-10 border-[3px] border-slate-200 border-t-[#0ea5e9] rounded-full animate-spin" />
+                </div>
+              ) : filteredLegacyMembers.length === 0 ? (
+                <div className="col-span-full text-center py-20 bg-white rounded-2xl border border-slate-200">
+                  <History size={36} className="text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-500 font-semibold">No legacy members found.</p>
+                </div>
+              ) : filteredLegacyMembers.map(member => (
+                <div key={member.id} className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between hover:shadow-md transition-all">
+                  <div className="flex items-start gap-4 mb-4">
+                    <MemberAvatar url={member.photo_url || null} name={member.name} size="w-14 h-14" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold text-slate-800 text-base leading-tight truncate">{member.name}</h3>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${member.role === 'President' ? 'bg-[#0ea5e9]/10 text-[#0ea5e9]' : 'bg-slate-100 text-slate-700'}`}>
+                          {member.role}
+                        </span>
+                      </div>
+                      <p className="text-xs font-mono font-semibold text-slate-400 mb-1">Tenure: {member.tenure}</p>
+                      <p className="text-xs font-semibold text-slate-700">
+                        {member.company_role} @ <span className="text-[#0ea5e9] font-bold">{member.company}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                    <span>Order #{member.order_index} • {member.location}</span>
+                    <div className="flex gap-1">
+                      <button onClick={() => handleLegacyEdit(member)} className="text-slate-400 hover:text-[#0ea5e9] p-1.5 rounded hover:bg-slate-50 transition-colors">
+                        <Edit3 size={16} />
+                      </button>
+                      <button onClick={() => handleLegacyDelete(member.id)} className="text-slate-400 hover:text-red-500 p-1.5 rounded hover:bg-slate-50 transition-colors">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1004,6 +1259,137 @@ const Admin: React.FC = () => {
                 <button type="submit" form="hof-form" disabled={isHofSaving}
                   className="px-6 py-2.5 bg-[#0ea5e9] text-white font-semibold rounded-xl hover:bg-[#0284c7] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                   {isHofSaving ? 'Saving...' : (editingHofId ? 'Update Entry' : 'Add Entry')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── LEGACY MODAL ─────────────────────────────────────── */}
+      <AnimatePresence>
+        {legacyModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => { setLegacyModalOpen(false); resetLegacyForm(); }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="bg-white border-b border-slate-200 p-5 flex justify-between items-center shrink-0">
+                <h2 className="text-xl font-display font-bold text-slate-800">
+                  {editingLegacyId ? 'Edit Legacy Member' : 'Add Legacy Member'}
+                </h2>
+                <button onClick={() => { setLegacyModalOpen(false); resetLegacyForm(); }} className="text-slate-400 hover:text-slate-600"><X size={22} /></button>
+              </div>
+              <div className="p-6 overflow-y-auto flex-1">
+                <form id="legacy-form" onSubmit={handleLegacySubmit} className="space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name *</label>
+                      <input required type="text" value={legacyForm.name || ''} onChange={e => setLegacyForm({ ...legacyForm, name: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Role *</label>
+                      <select required value={legacyForm.role || 'President'}
+                        onChange={e => setLegacyForm({ ...legacyForm, role: e.target.value as 'President' | 'Vice President' })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none">
+                        <option value="President">President (1 per tenure)</option>
+                        <option value="Vice President">Vice President (Up to 2 per tenure)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Tenure / Graduation Year *</label>
+                      <input required type="text" placeholder="e.g. 2023 - 2024 or 2024" value={legacyForm.tenure || ''} onChange={e => setLegacyForm({ ...legacyForm, tenure: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Order Index</label>
+                      <input type="number" min={0} value={legacyForm.order_index ?? 0} onChange={e => setLegacyForm({ ...legacyForm, order_index: parseInt(e.target.value) || 0 })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Placed Company *</label>
+                      <input required type="text" placeholder="e.g. Amazon / Microsoft" value={legacyForm.company || ''} onChange={e => setLegacyForm({ ...legacyForm, company: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Company Role *</label>
+                      <input required type="text" placeholder="e.g. SDE II / Cloud Engineer" value={legacyForm.company_role || ''} onChange={e => setLegacyForm({ ...legacyForm, company_role: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Location *</label>
+                      <input required type="text" placeholder="e.g. Bengaluru, India" value={legacyForm.location || ''} onChange={e => setLegacyForm({ ...legacyForm, location: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                        Photo URL <span className="text-slate-400 font-normal">(Google Drive link)</span>
+                      </label>
+                      <input type="url" placeholder="https://drive.google.com/file/d/..."
+                        value={legacyForm.photo_url || ''} onChange={e => {
+                          const v = e.target.value;
+                          setLegacyForm({ ...legacyForm, photo_url: v });
+                          setLegacyPhotoPreview(toDirectImageUrl(v));
+                        }}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                      {legacyPhotoPreview && (
+                        <div className="mt-3 flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-200 bg-slate-100">
+                            <img src={legacyPhotoPreview} alt="Preview" className="w-full h-full object-cover"
+                              onError={() => setLegacyPhotoPreview(null)} />
+                          </div>
+                          <span className="text-xs text-slate-400">Photo preview</span>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">LinkedIn URL <span className="text-slate-400 font-normal">(Optional)</span></label>
+                      <input type="url" placeholder="https://linkedin.com/in/..."
+                        value={legacyForm.linkedin_url || ''} onChange={e => setLegacyForm({ ...legacyForm, linkedin_url: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Personal Quote <span className="text-slate-400 font-normal">(Optional)</span></label>
+                    <input type="text" placeholder='e.g. "Community impact comes from building platforms..."'
+                      value={legacyForm.quote || ''} onChange={e => setLegacyForm({ ...legacyForm, quote: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Overview / Bio *</label>
+                    <textarea rows={3} required value={legacyForm.bio || ''} onChange={e => setLegacyForm({ ...legacyForm, bio: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none resize-none" />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                      Key Contributions & Impact <span className="text-slate-400 font-normal">(One achievement per line)</span>
+                    </label>
+                    <textarea rows={3} placeholder="Engineered chapter expansion to 1500+ members&#10;Organized CU Tech Innovate Hackathon&#10;Established AWS mentorship labs"
+                      value={legacyForm.key_contributions || ''} onChange={e => setLegacyForm({ ...legacyForm, key_contributions: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none resize-none font-mono text-xs" />
+                  </div>
+                </form>
+              </div>
+              <div className="bg-slate-50 border-t border-slate-200 p-5 flex justify-end gap-3 shrink-0">
+                <button type="button" onClick={() => { setLegacyModalOpen(false); resetLegacyForm(); }}
+                  className="px-5 py-2.5 font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition-all">Cancel</button>
+                <button type="submit" form="legacy-form" disabled={isLegacySaving}
+                  className="px-6 py-2.5 bg-[#0ea5e9] text-white font-semibold rounded-xl hover:bg-[#0284c7] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                  {isLegacySaving ? 'Saving...' : (editingLegacyId ? 'Update Legacy Member' : 'Add Legacy Member')}
                 </button>
               </div>
             </motion.div>

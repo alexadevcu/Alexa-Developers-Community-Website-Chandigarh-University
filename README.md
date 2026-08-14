@@ -32,9 +32,9 @@ This project is built using modern web technologies to ensure scalability, speed
   - **Supabase Auth:** Handles secure administrator login and session management.
   - **Supabase Storage:** Manages the uploading and serving of dynamic assets like event posters.
 
-### **Deployment**
-- **Vercel:** The application is deployed on Vercel. 
-- *Note:* Because this is a React SPA, routing is explicitly handled via the `vercel.json` file at the root, which rewrites all incoming URL requests back to `index.html`.
+### **Deployment & Orchestration**
+- **Vercel:** The application is easily deployable on Vercel. Because this is a React SPA, routing is explicitly handled via the `vercel.json` file at the root, which rewrites all incoming URL requests back to `index.html`.
+- **Docker:** Multi-stage `Dockerfile` and `docker-compose.yml` are included for isolated development and scalable production deployment behind an Nginx reverse proxy.
 
 ---
 
@@ -45,6 +45,7 @@ The public-facing website pulls data directly from the Supabase database in real
 - **Home:** Features a high-impact hero video, dynamic faculty mentor listings, and a showcase of past sponsors.
 - **Events:** Displays chronological lists of upcoming and past events. Posters are fetched from Supabase Storage.
 - **Team:** A categorized, responsive grid (Presidents, Leads, Members) showcasing both the current roster and a historical archive of past batches.
+- **Legacy:** Features the heritage of the chapter, highlighting past Presidents and Vice Presidents, their placements, and their community impact.
 - **Hall of Fame:** Highlights exceptional achievements and global representations by community members.
 
 ### 2. Admin Dashboard (CMS)
@@ -54,13 +55,15 @@ The platform includes a hidden, authenticated Admin Panel (accessible via `/admi
 - **Authentication:** Protected by Supabase Auth and a custom `<ProtectedRoute>` wrapper. Unauthenticated users are redirected to a secure login screen.
 - **Event Management:** Create, edit, or delete events. Upload posters directly to Supabase storage, and toggle event registration statuses.
 - **Team Management:** Add or update team members. Features advanced local **Search** and **Sort** (by Name, Role, Batch, or Custom Order Index) to easily manage large rosters.
+- **Legacy Management:** Manage the chapter's alumni leaders, tracking their tenures, current placements, and key contributions with role constraints.
 - **Hall of Fame Management:** Curate top achievements with specialized categorizations.
 
 ### 3. Database Structure
 The application relies on three primary Supabase tables:
 1. `events`: Stores event metadata (Name, Date, Status, Description, Poster URL, Registration Link).
 2. `team_members`: Stores member profiles (Name, Role, Category, LinkedIn, Bio, Batch Year, Current/Past Status, Order Index).
-3. `hall_of_fame`: Stores achievement records (Member Name, Event Name, Category, Photo URL).
+3. `legacy_members`: Stores historical leadership profiles (Name, Role, Tenure, Company, Location, Bio, Contributions).
+4. `hall_of_fame`: Stores achievement records (Member Name, Event Name, Category, Photo URL).
 
 *(All tables are ordered predictably using dedicated `order_index` or timestamp columns).*
 

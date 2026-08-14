@@ -273,6 +273,7 @@ const Events: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [heroEvents, setHeroEvents] = useState<Event[]>([]);
   const [heroIndex, setHeroIndex] = useState(0);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [carouselEvents, setCarouselEvents] = useState<Event[]>([]);
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -302,7 +303,8 @@ const Events: React.FC = () => {
         const { data, error } = await supabase
           .from('events')
           .select('*')
-          .order('event_date', { ascending: false });
+          .order('event_date', { ascending: false })
+          .limit(50);
 
         if (error) throw error;
 
@@ -345,13 +347,24 @@ const Events: React.FC = () => {
             if (ev) {
               setSelectedEvent(ev);
             }
-            // Optionally clear the query param so refreshing doesn't keep opening it, or leave it for shareable links.
-            // Leaving it allows direct linking.
           }
+
+          // Preload the hero image before dismissing the loader
+          if (hero.length > 0) {
+            const imgUrl = toDirectImageUrl(hero[0].poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop";
+            const img = new Image();
+            img.onload = () => setIsLoading(false);
+            img.onerror = () => setIsLoading(false);
+            img.src = imgUrl;
+          } else {
+            setIsLoading(false);
+          }
+
+        } else {
+          setIsLoading(false);
         }
       } catch (err) {
         console.error("Error fetching events:", err);
-      } finally {
         setIsLoading(false);
       }
     };
@@ -371,10 +384,16 @@ const Events: React.FC = () => {
     return start;
   };
 
+  const handleHeroChange = (newIndex: number) => {
+    setIsFirstLoad(false);
+    setHeroIndex(newIndex);
+  };
+
   // Auto-rotate Hero banner
   useEffect(() => {
     if (heroEvents.length <= 1) return;
     const interval = setInterval(() => {
+      setIsFirstLoad(false);
       setHeroIndex(prev => (prev + 1) % heroEvents.length);
     }, 6000);
     return () => clearInterval(interval);
@@ -392,8 +411,13 @@ const Events: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="w-16 h-16 border-[4px] border-[#0ea5e9]/20 border-t-[#0ea5e9] rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4">
+        <motion.div
+          className="w-14 h-14 rounded-full border-4 border-[#0ea5e9]/20 border-t-[#0ea5e9]"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}
+        />
+        <p className="text-slate-400 text-sm font-medium tracking-widest uppercase animate-pulse">Loading Events</p>
       </div>
     );
   }
@@ -409,13 +433,13 @@ const Events: React.FC = () => {
             <motion.div 
               key={heroIndex}
               className="absolute inset-0 z-0"
-              initial={{ opacity: 0, scale: 1.05 }}
+              initial={{ opacity: isFirstLoad ? 1 : 0, scale: isFirstLoad ? 1 : 1.05 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 1.2, ease: "easeOut" }}
+              transition={{ duration: isFirstLoad ? 0 : 1.2, ease: "easeOut" }}
             >
               <img 
-                src={heroEvents[heroIndex].poster_url || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop"} 
+                src={toDirectImageUrl(heroEvents[heroIndex].poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop"} 
                 alt={heroEvents[heroIndex].name} 
                 className="w-full h-full object-cover origin-center opacity-70"
               />
@@ -430,10 +454,10 @@ const Events: React.FC = () => {
             <AnimatePresence mode="wait">
               <motion.div
                 key={`content-${heroIndex}`}
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: isFirstLoad ? 1 : 0, y: isFirstLoad ? 0 : 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
+                transition={{ duration: isFirstLoad ? 0 : 0.6, delay: isFirstLoad ? 0 : 0.2 }}
               >
                 {/* Badges */}
                 <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -517,7 +541,7 @@ const Events: React.FC = () => {
               <>
                 {/* Left Arrow */}
                 <button
-                  onClick={() => setHeroIndex(prev => (prev - 1 + heroEvents.length) % heroEvents.length)}
+                  onClick={() => handleHeroChange((heroIndex - 1 + heroEvents.length) % heroEvents.length)}
                   className="absolute left-2 md:left-10 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 hover:bg-white border border-slate-200 shadow-lg flex items-center justify-center text-slate-700 hover:text-[#0ea5e9] transition-all duration-200 opacity-100 md:opacity-0 group-hover:opacity-100 hover:scale-110"
                   aria-label="Previous event"
                 >
@@ -526,7 +550,7 @@ const Events: React.FC = () => {
 
                 {/* Right Arrow */}
                 <button
-                  onClick={() => setHeroIndex(prev => (prev + 1) % heroEvents.length)}
+                  onClick={() => handleHeroChange((heroIndex + 1) % heroEvents.length)}
                   className="absolute right-2 md:right-10 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 hover:bg-white border border-slate-200 shadow-lg flex items-center justify-center text-slate-700 hover:text-[#0ea5e9] transition-all duration-200 opacity-100 md:opacity-0 group-hover:opacity-100 hover:scale-110"
                   aria-label="Next event"
                 >
@@ -538,7 +562,7 @@ const Events: React.FC = () => {
                   {heroEvents.map((_, idx) => (
                     <button
                       key={idx}
-                      onClick={() => setHeroIndex(idx)}
+                      onClick={() => handleHeroChange(idx)}
                       className={`h-1.5 rounded-full transition-all duration-500 ${idx === heroIndex ? 'w-10 bg-[#0ea5e9]' : 'w-2.5 bg-slate-400/50 hover:bg-slate-400'}`}
                       aria-label={`Go to slide ${idx + 1}`}
                     />
@@ -580,7 +604,7 @@ const Events: React.FC = () => {
                   className="h-[200px] md:h-[240px] relative rounded-xl overflow-hidden cursor-pointer border border-slate-200 bg-white group/card transition-all duration-500 hover:scale-105 hover:z-30 hover:shadow-xl shadow-sm"
                 >
                   <img 
-                    src={event.poster_url || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"} 
+                    src={toDirectImageUrl(event.poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"} 
                     alt={event.name} 
                     className="absolute inset-0 w-full h-full object-cover"
                   />
@@ -624,7 +648,7 @@ const Events: React.FC = () => {
                   >
                     {/* Thumbnail Image */}
                     <img 
-                      src={event.poster_url || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"} 
+                      src={toDirectImageUrl(event.poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"} 
                       alt={event.name} 
                       className="absolute inset-0 w-full h-full object-cover"
                     />

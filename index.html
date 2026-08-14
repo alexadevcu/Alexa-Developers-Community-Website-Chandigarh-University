@@ -136,6 +136,17 @@
     </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          var loader = document.getElementById('initial-loader');
+          if (loader) {
+            loader.classList.add('hidden');
+            setTimeout(function() { if (loader && loader.parentNode) loader.parentNode.removeChild(loader); }, 500);
+          }
+        }, 1500);
+      });
+    </script>
   </body>
 </html>
 

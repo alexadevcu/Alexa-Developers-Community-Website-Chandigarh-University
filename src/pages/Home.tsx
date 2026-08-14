@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useInView, AnimatePresence } from 'framer-motion';
+import { motion, useInView, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { ArrowRight, Lightbulb, Rocket, GraduationCap, Users, User, Calendar, Award, Quote, X } from 'lucide-react';
 import landingWebm from '../assets/Homepage/Review/Landing.webm';
@@ -9,6 +9,7 @@ import teamGroupPic from '../assets/Homepage/Landinggrouppic.jpg';
 import jasneetMamPic from '../assets/Homepage/Faculty/Jasneet mam.jpg';
 import prabhneetSirPic from '../assets/Homepage/Faculty/Prabhneet sir.jpg';
 import shivamSirPic from '../assets/Homepage/Faculty/Shivam Sir.jpg';
+import anamikaMamPic from '../assets/Homepage/Faculty/Anamika_Mam.jpg';
 import gal1 from '../assets/Homepage/Gallery/IMG20260226153332.jpg.jpeg';
 import gal2 from '../assets/Homepage/Gallery/IMG_0855 (1).JPG.jpeg';
 import gal3 from '../assets/Homepage/Gallery/IMG_2312.jpg.jpeg';
@@ -284,7 +285,10 @@ const Home = () => {
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [totalEvents, setTotalEvents] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const mouseX = useMotionValue(-500);
+  const mouseY = useMotionValue(-500);
+  const cursorX = useSpring(mouseX, { damping: 25, stiffness: 200 });
+  const cursorY = useSpring(mouseY, { damping: 25, stiffness: 200 });
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -294,7 +298,8 @@ const Home = () => {
 
   useEffect(() => {
     const updateMousePosition = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
+      mouseX.set(e.clientX - 128);
+      mouseY.set(e.clientY - 128);
     };
     window.addEventListener('mousemove', updateMousePosition);
     return () => window.removeEventListener('mousemove', updateMousePosition);
@@ -302,17 +307,35 @@ const Home = () => {
 
   useEffect(() => {
     const fetchHomeEvents = async () => {
-      const { data } = await supabase
+      const { count } = await supabase
         .from('events')
-        .select('*');
+        .select('*', { count: 'exact', head: true });
+      
+      setTotalEvents(count || 0);
 
-      if (data) {
-        const active = data.filter(e => !e.is_archived);
-        const upcoming = active.filter(e => e.status === 'upcoming').sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
-        const past = active.filter(e => e.status !== 'upcoming').sort((a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime());
-        setUpcomingEvents([...upcoming, ...past].slice(0, 3));
-        setTotalEvents(data.length);
+      const { data: upcomingData } = await supabase
+        .from('events')
+        .select('*')
+        .eq('is_archived', false)
+        .eq('status', 'upcoming')
+        .order('event_date', { ascending: true })
+        .limit(3);
+      
+      let displayEvents = upcomingData || [];
+      
+      if (displayEvents.length < 3) {
+        const { data: pastData } = await supabase
+          .from('events')
+          .select('*')
+          .eq('is_archived', false)
+          .neq('status', 'upcoming')
+          .order('event_date', { ascending: false })
+          .limit(3 - displayEvents.length);
+          
+        if (pastData) displayEvents = [...displayEvents, ...pastData];
       }
+      
+      setUpcomingEvents(displayEvents);
     };
 
     fetchHomeEvents();
@@ -367,11 +390,10 @@ const Home = () => {
         {/* Mouse Follower Glow */}
         <motion.div
           className="pointer-events-none fixed inset-0 z-50 w-64 h-64 rounded-full bg-[#0ea5e9]/20 blur-[100px]"
-          animate={{
-            x: mousePosition.x - 128, // center the 256px wide div
-            y: mousePosition.y - 128,
+          style={{
+            x: cursorX,
+            y: cursorY,
           }}
-          transition={{ type: "tween", ease: "backOut", duration: 0.5 }}
         />
 
         <div className="relative z-10">
@@ -600,7 +622,7 @@ const Home = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8">
                 {[
                   { icon: <Users className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: 1500, suffix: '+', label: 'Active Members' },
-                  { icon: <Calendar className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: totalEvents + 24, suffix: '', label: 'Events Hosted' },
+                  { icon: <Calendar className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: totalEvents + 48, suffix: '+', label: 'Events Hosted' },
                   { icon: <Award className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: 12, suffix: '+', label: 'Hackathons and Ideathons won by team' }
                 ].map((stat, i) => (
                   <div key={i} className="glass-card p-4 md:p-10 flex flex-col items-center justify-center text-center rounded-[1.5rem] md:rounded-[2rem]">
@@ -697,11 +719,12 @@ const Home = () => {
               <div className="mb-8">
                 <h2 className="font-headline-xl text-4xl md:text-5xl tracking-tight mb-4 text-center">Faculty Coordinators</h2>
                 <p className="text-[#bce9ff] text-center max-w-2xl mx-auto mb-12 opacity-80 font-body-lg">Guiding the next generation of innovators.</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-5xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
                   {[
                     { name: "Er. Shivam sir", title: "Faculty Advisor", image: shivamSirPic },
                     { name: "Er. Prabhneet Singh Sir", title: "Co-Faculty Adviser", image: prabhneetSirPic },
-                    { name: "Dr. Jasneet Kaur Ma'am", title: "Faculty mentor ADC, HOD cse final year CU", image: jasneetMamPic }
+                    { name: "Dr. Jasneet Kaur Ma'am", title: "Faculty mentor ADC, HOD cse final year CU", image: jasneetMamPic },
+                    { name: "Er. Anamika Ma'am", title: "Event coordinator C2 Takshashaila Block", image: anamikaMamPic }
                   ].map((faculty, i) => (
                     <div key={i} className="flex flex-col items-center text-center group cursor-pointer hover:-translate-y-2 transition-transform bg-white/5 p-8 rounded-3xl border border-white/10">
                       <div className="w-32 h-32 rounded-full bg-surface-variant/20 mb-6 border-2 border-[#00caff] relative overflow-hidden shadow-[0_0_20px_rgba(0,202,255,0.2)]">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -166,23 +166,28 @@ const Team: React.FC = () => {
       const { data, error } = await supabase
         .from('team_members')
         .select('*')
-        .order('order_index', { ascending: true });
+        .order('order_index', { ascending: true })
+        .limit(100);
       if (!error && data) setMembers(data);
       setIsLoading(false);
     };
     fetch();
   }, []);
 
-  const currentMembers = members.filter(m => m.is_current);
-  const pastMembers = members.filter(m => !m.is_current);
-
-  // Group past members by batch year
-  const pastByYear: Record<string, Member[]> = {};
-  pastMembers.forEach(m => {
-    if (!pastByYear[m.batch_year]) pastByYear[m.batch_year] = [];
-    pastByYear[m.batch_year].push(m);
-  });
-  const pastYears = Object.keys(pastByYear).sort((a, b) => b.localeCompare(a));
+  const { currentMembers, pastMembers, pastByYear, pastYears } = useMemo(() => {
+    const current = members.filter(m => m.is_current);
+    const past = members.filter(m => !m.is_current);
+    
+    const byYear: Record<string, Member[]> = {};
+    past.forEach(m => {
+      if (!byYear[m.batch_year]) byYear[m.batch_year] = [];
+      byYear[m.batch_year].push(m);
+    });
+    
+    const years = Object.keys(byYear).sort((a, b) => b.localeCompare(a));
+    
+    return { currentMembers: current, pastMembers: past, pastByYear: byYear, pastYears: years };
+  }, [members]);
 
   if (isLoading) {
     return (

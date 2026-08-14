@@ -22,7 +22,8 @@ const HallOfFame = () => {
       const { data } = await supabase
         .from('hall_of_fame')
         .select('*')
-        .order('order_index', { ascending: true });
+        .order('order_index', { ascending: true })
+        .limit(50);
       if (data) setHofEntries(data);
       setIsLoading(false);
     };
