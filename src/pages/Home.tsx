@@ -40,15 +40,21 @@ interface Event {
   registration_link: string;
   status: 'upcoming' | 'completed';
   is_registration_open?: boolean;
-  partnerships?: string;
   gallery_urls?: string | null;
+  is_archived?: boolean;
   venue?: string | null;
   why_participate?: string | null;
   eligibility?: string | null;
   rules_guidelines?: string | null;
+  partnerships?: string | null;
 }
 
-
+const toDirectImageUrl = (url: string | null, width = 800): string | null => {
+  if (!url) return null;
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (match) return `https://lh3.googleusercontent.com/d/${match[1]}=w${width}`;
+  return url;
+};
 
 // Removed Spline AudioContext hack as Spline is no longer used
 
@@ -211,9 +217,10 @@ const EventDetailOverlay: React.FC<{ event: Event; onClose: () => void }> = ({ e
               {/* Poster */}
               <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden bg-slate-100 mb-4 border border-slate-200 shadow-sm">
                 <img
-                  src={event.poster_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop'}
+                  src={toDirectImageUrl(event.poster_url) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop'}
                   alt={event.name}
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
               </div>
 
@@ -389,7 +396,7 @@ const Home = () => {
 
         {/* Mouse Follower Glow */}
         <motion.div
-          className="pointer-events-none fixed inset-0 z-50 w-64 h-64 rounded-full bg-[#0ea5e9]/20 blur-[100px]"
+          className="pointer-events-none fixed top-0 left-0 z-50 w-64 h-64 rounded-full bg-[#0ea5e9]/20 blur-3xl transform-gpu"
           style={{
             x: cursorX,
             y: cursorY,
@@ -551,7 +558,7 @@ const Home = () => {
                           {event.status === 'upcoming' ? 'Upcoming' : 'Completed'}
                         </div>
                         {event.poster_url ? (
-                          <img src={event.poster_url} alt={event.name} className="w-full h-full object-cover transition-transform duration-700" />
+                          <img src={toDirectImageUrl(event.poster_url)!} alt={event.name} className="w-full h-full object-cover transition-transform duration-700" />
                         ) : (
                           <div className="w-full h-full bg-surface-dim flex items-center justify-center">
                             <Calendar size={36} className="text-outline/30" />
@@ -587,7 +594,7 @@ const Home = () => {
                           {event.status === 'upcoming' ? 'Upcoming' : 'Completed'}
                         </div>
                         {event.poster_url ? (
-                          <img src={event.poster_url} alt={event.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                          <img src={toDirectImageUrl(event.poster_url)!} alt={event.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                         ) : (
                           <div className="w-full h-full bg-surface-dim transition-transform duration-700 group-hover:scale-105 flex items-center justify-center">
                             <Calendar size={48} className="text-outline/30" />

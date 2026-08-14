@@ -4,10 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, ChevronRight, ChevronLeft, Play, Info, X, Image as ImageIcon, ArrowRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-const toDirectImageUrl = (url: string | null): string | null => {
+const toDirectImageUrl = (url: string | null, width = 800): string | null => {
   if (!url) return null;
   const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (match) return `https://lh3.googleusercontent.com/d/${match[1]}`;
+  if (match) return `https://lh3.googleusercontent.com/d/${match[1]}=w${width}`;
   return url;
 };
 // â”€â”€ Countdown timer hook â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

@@ -125,17 +125,19 @@
     50% { height: 100%; }
   }
   .glass-card {
-    background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.7);
     box-shadow: 0 8px 32px rgba(0, 103, 131, 0.05);
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+    will-change: transform;
+    transform: translateZ(0);
   }
   .glass-card:hover {
     box-shadow: 0 12px 40px rgba(0, 202, 255, 0.1);
-    transform: translateY(-4px);
-    background: rgba(255, 255, 255, 0.5);
+    transform: translateY(-4px) translateZ(0);
+    background: rgba(255, 255, 255, 0.75);
   }
   .glass-panel {
     background: rgba(255, 255, 255, 0.95);

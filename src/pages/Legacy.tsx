@@ -23,10 +23,10 @@ const LinkedinIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const toDirectImageUrl = (url: string | null): string | null => {
+const toDirectImageUrl = (url: string | null, width = 800): string | null => {
   if (!url) return null;
   const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (match) return `https://lh3.googleusercontent.com/d/${match[1]}`;
+  if (match) return `https://lh3.googleusercontent.com/d/${match[1]}=w${width}`;
   return url;
 };
 
