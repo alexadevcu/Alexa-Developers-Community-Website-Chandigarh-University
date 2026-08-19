@@ -1,8 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useInView, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
+import { motion, useInView, useMotionValue, useSpring } from 'framer-motion';
 import type { Variants } from 'framer-motion';
-import { ArrowRight, Lightbulb, Rocket, GraduationCap, Users, User, Calendar, Award, Quote, X } from 'lucide-react';
+import { ArrowRight, Lightbulb, Rocket, GraduationCap, Users, User, Calendar, Award, Quote } from 'lucide-react';
 import landingWebm from '../assets/Homepage/Review/Landing.webm';
 import teamGroupPic from '../assets/Homepage/Landinggrouppic.jpg';
 // drAbhishekPic import removed temporarily (Abhishek Sir hidden)
@@ -28,6 +28,7 @@ import samarthImg from '../assets/Homepage/Review/Samarth.png';
 
 const sponsorsList = [sponsor1, sponsor2, sponsor3, sponsor4, sponsor6, sponsor7, sponsor8, sponsor9];
 import { supabase } from '../lib/supabase';
+import { slugify } from '../lib/utils';
 
 interface Event {
   id: string;
@@ -83,225 +84,14 @@ const staggerContainer: Variants = {
   visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
 };
 
-// ── Countdown timer hook ────────────────────────────────────────────
-function useCountdown(targetDate: string | null) {
-  const calc = () => {
-    if (!targetDate) return { d: 0, h: 0, m: 0, s: 0, over: true };
-    const diff = new Date(targetDate).getTime() - Date.now();
-    if (diff <= 0) return { d: 0, h: 0, m: 0, s: 0, over: true };
-    const d = Math.floor(diff / 86400000);
-    const h = Math.floor((diff % 86400000) / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    const s = Math.floor((diff % 60000) / 1000);
-    return { d, h, m, s, over: false };
-  };
-  const [time, setTime] = useState(calc);
-  useEffect(() => {
-    const t = setInterval(() => setTime(calc()), 1000);
-    return () => clearInterval(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetDate]);
-  return time;
-}
-
-// ── Event Detail Overlay ─────────────────────────────────────────────
-const EventDetailOverlay: React.FC<{ event: Event; onClose: () => void }> = ({ event, onClose }) => {
-  const countdown = useCountdown(event.status === 'upcoming' ? event.end_date || event.event_date : null);
-
-  const defaultEligibility = "Open to all students. Individual based participation";
-  const defaultWhyParticipate = "Expert mentorship and industry relevant themes\nCertificates and networking opportunities\nHosted on campus at Chandigarh University";
-  const defaultVenue = "Chandigarh University, Mohali, Punjab";
-
-  const formatDateRange = () => {
-    const start = new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    if (event.end_date) {
-      const end = new Date(event.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      return `${start} – ${end}`;
-    }
-    return start;
-  };
-
-  return (
-    <>
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
-      />
-
-      {/* Slide-up panel */}
-      <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="fixed inset-x-0 bottom-0 z-50 max-h-[95vh] bg-white rounded-t-3xl overflow-hidden flex flex-col shadow-2xl md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-5xl md:bottom-4 md:rounded-3xl"
-      >
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-          <span className="font-mono text-xs uppercase tracking-widest text-slate-400">Event Details</span>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center transition-colors"
-          >
-            <X size={18} className="text-slate-600" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="flex flex-col md:flex-row gap-0 md:gap-8 p-6 md:p-8">
-
-            {/* Left column: text content */}
-            <div className="flex-1 min-w-0 order-2 md:order-1">
-              <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-6 leading-tight">{event.name}</h1>
-
-              {/* About the Event */}
-              <div className="mb-8">
-                <h2 className="text-lg font-bold text-slate-800 mb-3">About the Event</h2>
-                <p className="text-slate-600 leading-relaxed text-[15px]">{event.description || 'Details coming soon.'}</p>
-              </div>
-
-              <div className="mb-8">
-                <h2 className="text-lg font-bold text-slate-800 mb-3">Why Participate?</h2>
-                <p className="text-slate-600 leading-relaxed text-[15px] whitespace-pre-wrap">
-                  {event.why_participate || defaultWhyParticipate}
-                </p>
-              </div>
-
-              <div className="mb-8">
-                <h2 className="text-lg font-bold text-slate-800 mb-3">Eligibility</h2>
-                <p className="text-slate-600 leading-relaxed text-[15px] whitespace-pre-wrap">
-                  {event.eligibility || defaultEligibility}
-                </p>
-              </div>
-
-              {event.rules_guidelines && (
-                <div className="mb-8">
-                  <h2 className="text-lg font-bold text-slate-800 mb-3">Rules & Guidelines</h2>
-                  <p className="text-slate-600 leading-relaxed text-[15px] whitespace-pre-wrap">
-                    {event.rules_guidelines}
-                  </p>
-                </div>
-              )}
-
-              {/* Event Type */}
-              {event.type && (
-                <div className="border-t border-slate-100 pt-6 mb-6">
-                  <span className="px-3 py-1.5 bg-[#006783]/10 text-[#006783] rounded-full text-sm font-semibold">
-                    {event.type}
-                  </span>
-                </div>
-              )}
-
-              {/* Hosted By */}
-              <div className="border-t border-slate-100 pt-6 mb-6">
-                <p className="text-xs uppercase tracking-widest text-slate-400 mb-1">Hosted By</p>
-                <p className="text-slate-700 font-semibold">Alexa Developers Community — Chandigarh University</p>
-              </div>
-
-              {/* Partnerships */}
-              {event.partnerships && (
-                <div className="mb-6">
-                  <p className="text-xs uppercase tracking-widest text-slate-400 mb-1">In Partnership With</p>
-                  <p className="text-slate-700 font-semibold">{event.partnerships}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Right sidebar */}
-            <div className="w-full md:w-72 lg:w-80 shrink-0 order-1 md:order-2 mb-6 md:mb-0">
-              {/* Poster */}
-              <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden bg-slate-100 mb-4 border border-slate-200 shadow-sm">
-                <img
-                  src={toDirectImageUrl(event.poster_url) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop'}
-                  alt={event.name}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-
-              {/* Meta box */}
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
-                {/* Event name */}
-                <div className="px-4 py-3 border-b border-slate-200">
-                  <p className="font-bold text-slate-900 text-sm leading-snug">{event.name}</p>
-                </div>
-
-                {/* Dates */}
-                <div className="px-4 py-3 border-b border-slate-200">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Runs From</p>
-                  <p className="text-sm font-semibold text-slate-700">{formatDateRange()}</p>
-                </div>
-
-                {/* Venue */}
-                <div className="px-4 py-3 border-b border-slate-200">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Happening</p>
-                  <p className="text-sm font-semibold text-slate-700">{event.venue || defaultVenue}</p>
-                </div>
-
-                {/* Countdown */}
-                {event.status === 'upcoming' && !countdown.over && (
-                  <div className="px-4 py-3 border-b border-slate-200">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Applications Close In</p>
-                    <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">
-                      {countdown.d}d:{String(countdown.h).padStart(2,'0')}h:{String(countdown.m).padStart(2,'0')}m
-                    </p>
-                  </div>
-                )}
-                {event.status !== 'upcoming' && (
-                  <div className="px-4 py-3 border-b border-slate-200">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Status</p>
-                    <p className="text-sm font-semibold text-slate-500">Event Completed</p>
-                  </div>
-                )}
-
-                {/* CTA */}
-                <div className="px-4 py-4">
-                  {event.status === 'upcoming' && event.is_registration_open !== false && event.registration_link ? (
-                    <a
-                      href={event.registration_link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="w-full flex items-center justify-center gap-2 py-3 bg-slate-900 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors text-sm"
-                    >
-                      Register on External Site <ArrowRight size={15} />
-                    </a>
-                  ) : (
-                    <button disabled className="w-full py-3 bg-slate-200 text-slate-400 font-bold rounded-xl text-sm cursor-not-allowed">
-                      Registrations Closed
-                    </button>
-                  )}
-                  <p className="text-center text-[10px] text-slate-400 mt-2">Registrations for this event are managed externally.</p>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </motion.div>
-    </>
-  );
-};
-
 const Home = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [totalEvents, setTotalEvents] = useState(0);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const mouseX = useMotionValue(-500);
   const mouseY = useMotionValue(-500);
   const cursorX = useSpring(mouseX, { damping: 25, stiffness: 200 });
   const cursorY = useSpring(mouseY, { damping: 25, stiffness: 200 });
-
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    document.body.style.overflow = selectedEvent ? 'hidden' : 'auto';
-    return () => { document.body.style.overflow = 'auto'; };
-  }, [selectedEvent]);
 
   useEffect(() => {
     const updateMousePosition = (e: MouseEvent) => {
@@ -317,7 +107,7 @@ const Home = () => {
       const { count } = await supabase
         .from('events')
         .select('*', { count: 'exact', head: true });
-      
+
       setTotalEvents(count || 0);
 
       const { data: upcomingData } = await supabase
@@ -327,9 +117,9 @@ const Home = () => {
         .eq('status', 'upcoming')
         .order('event_date', { ascending: true })
         .limit(3);
-      
+
       let displayEvents = upcomingData || [];
-      
+
       if (displayEvents.length < 3) {
         const { data: pastData } = await supabase
           .from('events')
@@ -338,10 +128,10 @@ const Home = () => {
           .neq('status', 'upcoming')
           .order('event_date', { ascending: false })
           .limit(3 - displayEvents.length);
-          
+
         if (pastData) displayEvents = [...displayEvents, ...pastData];
       }
-      
+
       setUpcomingEvents(displayEvents);
     };
 
@@ -551,7 +341,7 @@ const Home = () => {
                   const day = date.getDate();
                   const year = date.getFullYear();
                   return (
-                    <div key={event.id} className="min-w-[75vw] snap-start glass-card rounded-3xl overflow-hidden group cursor-pointer flex flex-col shrink-0" onClick={() => setSelectedEvent(event)}>
+                    <Link key={event.id} to={`/events/${slugify(event.name)}`} className="min-w-[75vw] snap-start glass-card rounded-3xl overflow-hidden group cursor-pointer flex flex-col shrink-0">
                       <div className="h-44 bg-surface-variant relative overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
                         <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-sm ${event.status === 'upcoming' ? 'bg-surface' : 'bg-surface-dim text-on-surface-variant'}`}>
@@ -572,7 +362,7 @@ const Home = () => {
                           View Details <ArrowRight size={14} />
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   );
                 }) : (
                   <p className="text-on-surface-variant text-base py-8 px-2">No upcoming events at the moment. Stay tuned!</p>
@@ -587,7 +377,7 @@ const Home = () => {
                   const day = date.getDate();
                   const year = date.getFullYear();
                   return (
-                    <div key={event.id} className="glass-card rounded-3xl overflow-hidden group cursor-pointer flex flex-col h-full" onClick={() => setSelectedEvent(event)}>
+                    <Link key={event.id} to={`/events/${slugify(event.name)}`} className="glass-card rounded-3xl overflow-hidden group cursor-pointer flex flex-col h-full">
                       <div className="h-56 bg-surface-variant relative overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
                         <div className={`absolute top-4 left-4 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-sm ${event.status === 'upcoming' ? 'bg-surface' : 'bg-surface-dim text-on-surface-variant'}`}>
@@ -608,7 +398,7 @@ const Home = () => {
                           View Details <ArrowRight size={16} className="-translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   );
                 }) : (
                   <div className="col-span-3 text-center py-12">
@@ -690,7 +480,7 @@ const Home = () => {
                 {
                   quote: "\"Behind every successful workshop was a team that genuinely cared about creating value for others. We weren't just organizing events—we were creating opportunities for students to discover their passion for technology. Being part of that journey is something I'll always be grateful for.\"",
                   name: "Gurmeet Kaur",
-                  role: "Vice President",
+                  role: "Former Vice President",
                   avatar: gurmeetImg
                 },
                 {
@@ -776,11 +566,6 @@ const Home = () => {
           </section>
         </div>
       </div>
-
-      {/* Rich Event Detail Overlay */}
-      <AnimatePresence>
-        {selectedEvent && <EventDetailOverlay event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
-      </AnimatePresence>
     </>
   );
 };

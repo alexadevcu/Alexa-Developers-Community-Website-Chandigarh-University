@@ -21,13 +21,15 @@ interface Event {
   why_participate?: string | null;
   eligibility?: string | null;
   rules_guidelines?: string | null;
+  show_external_website?: boolean;
 }
 
 interface Member {
   id: string; name: string; role: string;
   role_category: 'president' | 'vice_president' | 'community_manager' | 'lead' | 'member';
   batch_year: string; is_current: boolean; photo_url: string | null;
-  linkedin_url: string | null; bio: string | null; order_index: number;
+  linkedin_url: string | null; instagram_url?: string | null; email?: string | null;
+  bio: string | null; order_index: number;
 }
 
 interface HallOfFameEntry {
@@ -215,18 +217,28 @@ const Admin: React.FC = () => {
       setIsUploading(true);
       let finalPosterUrl = eventForm.poster_url;
       if (selectedFile) finalPosterUrl = await uploadImage(selectedFile);
-      const payload = { 
+      const payload: any = { 
         ...eventForm, 
         poster_url: finalPosterUrl,
         end_date: eventForm.end_date ? eventForm.end_date : null
       };
+      
       if (editingEventId) {
-        const { error } = await supabase.from('events').update(payload).eq('id', editingEventId);
-        if (error) throw error;
+        let { error } = await supabase.from('events').update(payload).eq('id', editingEventId);
+        if (error && error.message.includes('show_external_website')) {
+          delete payload.show_external_website;
+          const retry = await supabase.from('events').update(payload).eq('id', editingEventId);
+          if (retry.error) throw retry.error;
+        } else if (error) throw error;
       } else {
-        const { error } = await supabase.from('events').insert([payload]);
-        if (error) throw error;
+        let { error } = await supabase.from('events').insert([payload]);
+        if (error && error.message.includes('show_external_website')) {
+          delete payload.show_external_website;
+          const retry = await supabase.from('events').insert([payload]);
+          if (retry.error) throw retry.error;
+        } else if (error) throw error;
       }
+
       setEventModalOpen(false); resetEventForm(); fetchEvents();
       toast.success(editingEventId ? 'Event updated!' : 'Event created!');
     } catch (err: any) { toast.error('Error: ' + err.message); }
@@ -347,11 +359,21 @@ const Admin: React.FC = () => {
       }
 
       if (editingMemberId) {
-        const { error } = await supabase.from('team_members').update(payload).eq('id', editingMemberId);
-        if (error) throw error;
+        let { error } = await supabase.from('team_members').update(payload).eq('id', editingMemberId);
+        if (error && (error.message.includes('instagram_url') || error.message.includes('email'))) {
+          delete (payload as any).instagram_url;
+          delete (payload as any).email;
+          const retry = await supabase.from('team_members').update(payload).eq('id', editingMemberId);
+          if (retry.error) throw retry.error;
+        } else if (error) throw error;
       } else {
-        const { error } = await supabase.from('team_members').insert([payload]);
-        if (error) throw error;
+        let { error } = await supabase.from('team_members').insert([payload]);
+        if (error && (error.message.includes('instagram_url') || error.message.includes('email'))) {
+          delete (payload as any).instagram_url;
+          delete (payload as any).email;
+          const retry = await supabase.from('team_members').insert([payload]);
+          if (retry.error) throw retry.error;
+        } else if (error) throw error;
       }
       setMemberModalOpen(false); resetMemberForm(); fetchMembers();
       toast.success(editingMemberId ? 'Member updated!' : 'Member added!');
@@ -726,12 +748,12 @@ const Admin: React.FC = () => {
                     <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between">
                       <button onClick={() => toggleRegistration(event.id, event.is_registration_open ?? true)}
                         className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded flex items-center gap-1 transition-colors ${
-                          (event.is_registration_open ?? true)
+                          (event.status === 'upcoming' && (event.is_registration_open ?? true))
                             ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
                             : 'text-red-700 bg-red-50 hover:bg-red-100'
                         }`}>
                         <CheckCircle2 size={11} />
-                        {(event.is_registration_open ?? true) ? 'Reg Open' : 'Reg Closed'}
+                        {(event.status === 'upcoming' && (event.is_registration_open ?? true)) ? 'Reg Open' : 'Reg Closed'}
                       </button>
                       <div className="flex gap-1">
                         <button onClick={() => togglePin(event.id, event.is_pinned ?? false)} 
@@ -1007,21 +1029,33 @@ const Admin: React.FC = () => {
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Status *</label>
                       <select required value={eventForm.status || 'upcoming'} onChange={e => setEventForm({ ...eventForm, status: e.target.value as 'upcoming' | 'completed' })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none">
-                        <option value="upcoming">Upcoming</option>
+                        <option value="upcoming">Upcoming (Ongoing)</option>
                         <option value="completed">Completed</option>
                       </select>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Partnerships</label>
                       <input type="text" value={eventForm.partnerships || ''} onChange={e => setEventForm({ ...eventForm, partnerships: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
                     </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Registration Link</label>
-                      <input type="url" value={eventForm.registration_link || ''} onChange={e => setEventForm({ ...eventForm, registration_link: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">External Website / Registration Link</label>
+                    <input type="url" value={eventForm.registration_link || ''} onChange={e => setEventForm({ ...eventForm, registration_link: e.target.value })}
+                      placeholder="https://... (e.g. hackathon site, event portal, or registration form)"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    
+                    <div className="flex items-center gap-2.5 mt-2.5">
+                      <input 
+                        type="checkbox" 
+                        id="show_external_website"
+                        checked={eventForm.show_external_website ?? false}
+                        onChange={e => setEventForm({ ...eventForm, show_external_website: e.target.checked })}
+                        className="w-4 h-4 text-[#0ea5e9] rounded border-slate-300 focus:ring-[#0ea5e9] cursor-pointer"
+                      />
+                      <label htmlFor="show_external_website" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                        Keep "Visit Event Website" button visible when this event is Completed
+                      </label>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -1162,11 +1196,25 @@ const Admin: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">LinkedIn URL</label>
-                    <input type="url" placeholder="https://linkedin.com/in/..."
-                      value={memberForm.linkedin_url || ''} onChange={e => setMemberForm({ ...memberForm, linkedin_url: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">LinkedIn URL</label>
+                      <input type="url" placeholder="https://linkedin.com/in/..."
+                        value={memberForm.linkedin_url || ''} onChange={e => setMemberForm({ ...memberForm, linkedin_url: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Instagram URL</label>
+                      <input type="url" placeholder="https://instagram.com/..."
+                        value={memberForm.instagram_url || ''} onChange={e => setMemberForm({ ...memberForm, instagram_url: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
+                      <input type="email" placeholder="name@example.com"
+                        value={memberForm.email || ''} onChange={e => setMemberForm({ ...memberForm, email: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Short Bio</label>

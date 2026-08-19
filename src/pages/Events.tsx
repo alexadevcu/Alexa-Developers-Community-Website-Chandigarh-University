@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, ChevronRight, ChevronLeft, Play, Info, X, Image as ImageIcon, ArrowRight } from 'lucide-react';
+import { Calendar, ChevronRight, ChevronLeft, Play, Info } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { slugify } from '../lib/utils';
 
 const toDirectImageUrl = (url: string | null, width = 800): string | null => {
   if (!url) return null;
@@ -10,244 +11,6 @@ const toDirectImageUrl = (url: string | null, width = 800): string | null => {
   if (match) return `https://lh3.googleusercontent.com/d/${match[1]}=w${width}`;
   return url;
 };
-// â”€â”€ Countdown timer hook â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function useCountdown(targetDate: string | null) {
-  const calc = () => {
-    if (!targetDate) return { d: 0, h: 0, m: 0, s: 0, over: true };
-    const diff = new Date(targetDate).getTime() - Date.now();
-    if (diff <= 0) return { d: 0, h: 0, m: 0, s: 0, over: true };
-    const d = Math.floor(diff / 86400000);
-    const h = Math.floor((diff % 86400000) / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    const s = Math.floor((diff % 60000) / 1000);
-    return { d, h, m, s, over: false };
-  };
-  const [time, setTime] = React.useState(calc);
-  React.useEffect(() => {
-    const t = setInterval(() => setTime(calc()), 1000);
-    return () => clearInterval(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetDate]);
-  return time;
-}
-
-// â”€â”€ Event Detail Overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const EventDetailOverlay: React.FC<{ event: Event; onClose: () => void }> = ({ event, onClose }) => {
-  const countdown = useCountdown(event.status === 'upcoming' ? event.end_date || event.event_date : null);
-
-  const defaultEligibility = "Open to all students. Individual based participation";
-  const defaultWhyParticipate = "Expert mentorship and industry relevant themes\nCertificates and networking opportunities\nHosted on campus at Chandigarh University";
-  const defaultVenue = "Chandigarh University, Mohali, Punjab";
-
-
-  const formatDateRange = () => {
-    const start = new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    if (event.end_date) {
-      const end = new Date(event.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      return `${start} - ${end}`;
-    }
-    return start;
-  };
-
-  return (
-    <>
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
-      />
-
-      {/* Slide-up panel */}
-      <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="fixed inset-x-0 bottom-0 z-50 max-h-[95vh] bg-white rounded-t-3xl overflow-hidden flex flex-col shadow-2xl md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-5xl md:bottom-4 md:rounded-3xl"
-      >
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-          <span className="font-mono text-xs uppercase tracking-widest text-slate-400">Event Details</span>
-          <button
-            onClick={onClose}
-            className="w-9 h-9 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center transition-colors"
-          >
-            <X size={18} className="text-slate-600" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="flex flex-col md:flex-row gap-0 md:gap-8 p-6 md:p-8">
-
-            {/* Left column */}
-            <div className="flex-1 min-w-0 order-2 md:order-1">
-              <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-6 leading-tight">{event.name}</h1>
-
-              <div className="mb-8">
-                <h2 className="text-lg font-bold text-slate-800 mb-3">About the Event</h2>
-                <p className="text-slate-600 leading-relaxed text-[15px]">{event.description || 'Details coming soon.'}</p>
-              </div>
-
-              <div className="mb-8">
-                <h2 className="text-lg font-bold text-slate-800 mb-3">Why Participate?</h2>
-                <p className="text-slate-600 leading-relaxed text-[15px] whitespace-pre-wrap">
-                  {event.why_participate || defaultWhyParticipate}
-                </p>
-              </div>
-
-              <div className="mb-8">
-                <h2 className="text-lg font-bold text-slate-800 mb-3">Eligibility</h2>
-                <p className="text-slate-600 leading-relaxed text-[15px] whitespace-pre-wrap">
-                  {event.eligibility || defaultEligibility}
-                </p>
-              </div>
-
-              {event.rules_guidelines && (
-                <div className="mb-8">
-                  <h2 className="text-lg font-bold text-slate-800 mb-3">Rules & Guidelines</h2>
-                  <p className="text-slate-600 leading-relaxed text-[15px] whitespace-pre-wrap">
-                    {event.rules_guidelines}
-                  </p>
-                </div>
-              )}
-
-              {event.type && (
-                <div className="border-t border-slate-100 pt-6 mb-6">
-                  <span className="px-3 py-1.5 bg-[#006783]/10 text-[#006783] rounded-full text-sm font-semibold">{event.type}</span>
-                </div>
-              )}
-              
-              <div className="border-t border-slate-100 pt-6 mb-6">
-                <p className="text-xs uppercase tracking-widest text-slate-400 mb-1">Hosted By</p>
-                <p className="text-slate-700 font-semibold">Alexa Developers Community — Chandigarh University</p>
-              </div>
-
-              {event.partnerships && (
-                <div className="mb-6">
-                  <p className="text-xs uppercase tracking-widest text-slate-400 mb-1">In Partnership With</p>
-                  <p className="text-slate-700 font-semibold">{event.partnerships}</p>
-                </div>
-              )}
-
-              {/* Gallery */}
-              {event.gallery_urls && (() => {
-                const urls = event.gallery_urls!.split(',').map(u => u.trim()).filter(Boolean);
-                if (urls.length === 0) return null;
-                const teamPicUrl = toDirectImageUrl(urls[0]);
-                const otherPics = urls.slice(1);
-                return (
-                  <div className="border-t border-slate-100 pt-6">
-                    <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                      <ImageIcon size={18} className="text-[#0ea5e9]" /> Event Gallery
-                    </h2>
-                    <div className="flex flex-col gap-4">
-                      {teamPicUrl && (
-                        <div className="w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-200">
-                          <div className="absolute top-4 left-4 bg-white/90 text-slate-800 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-sm">Team Picture</div>
-                          <img src={teamPicUrl} alt="Team" className="w-full h-auto object-cover max-h-[400px]" referrerPolicy="no-referrer"
-                            onError={(e) => {
-                              const img = e.currentTarget;
-                              const match = urls[0].match(/\/d\/([a-zA-Z0-9_-]+)/) || urls[0].match(/[?&]id=([a-zA-Z0-9_-]+)/);
-                              const fallback = match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000` : null;
-                              if (fallback && img.src !== fallback) img.src = fallback; else img.style.display = 'none';
-                            }} />
-                        </div>
-                      )}
-                      {otherPics.length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                          {otherPics.map((originalUrl, idx) => {
-                            const imgUrl = toDirectImageUrl(originalUrl);
-                            if (!imgUrl) return null;
-                            return (
-                              <div key={idx} className="aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                                <img src={imgUrl} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer"
-                                  onError={(e) => {
-                                    const img = e.currentTarget;
-                                    const match = originalUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || originalUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-                                    const fallback = match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000` : null;
-                                    if (fallback && img.src !== fallback) img.src = fallback; else img.style.display = 'none';
-                                  }} />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
-
-            </div>
-
-            {/* Right sidebar */}
-            <div className="w-full md:w-72 lg:w-80 shrink-0 order-1 md:order-2 mb-6 md:mb-0">
-              <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden bg-slate-100 mb-4 border border-slate-200 shadow-sm">
-                <img
-                  src={toDirectImageUrl(event.poster_url) || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop'}
-                  alt={event.name}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-
-              <div className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-200">
-                  <p className="font-bold text-slate-900 text-sm leading-snug">{event.name}</p>
-                </div>
-                <div className="px-4 py-3 border-b border-slate-200">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Runs From</p>
-                  <p className="text-sm font-semibold text-slate-700">{formatDateRange()}</p>
-                </div>
-                <div className="px-4 py-3 border-b border-slate-200">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Happening</p>
-                  <p className="text-sm font-semibold text-slate-700">{event.venue || defaultVenue}</p>
-                </div>
-                {event.status === 'upcoming' && !countdown.over && (
-                  <div className="px-4 py-3 border-b border-slate-200">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Applications Close In</p>
-                    <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">
-                      {countdown.d}d:{String(countdown.h).padStart(2,'0')}h:{String(countdown.m).padStart(2,'0')}m
-                    </p>
-                  </div>
-                )}
-                {event.status !== 'upcoming' && (
-                  <div className="px-4 py-3 border-b border-slate-200">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Status</p>
-                    <p className="text-sm font-semibold text-slate-500">Event Completed</p>
-                  </div>
-                )}
-                <div className="px-4 py-4">
-                  {event.status === 'upcoming' && event.is_registration_open !== false && event.registration_link ? (
-                    <a
-                      href={event.registration_link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="w-full flex items-center justify-center gap-2 py-3 bg-slate-900 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors text-sm"
-                    >
-                      Register on External Site <ArrowRight size={15} />
-                    </a>
-                  ) : (
-                    <button disabled className="w-full py-3 bg-slate-200 text-slate-400 font-bold rounded-xl text-sm cursor-not-allowed">
-                      Registrations Closed
-                    </button>
-                  )}
-                  <p className="text-center text-[10px] text-slate-400 mt-2">Registrations for this event are managed externally.</p>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </motion.div>
-    </>
-  );
-};
-
-
 interface Event {
   id: string;
   name: string;
@@ -271,13 +34,13 @@ interface Event {
 
 const Events: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [heroEvents, setHeroEvents] = useState<Event[]>([]);
   const [heroIndex, setHeroIndex] = useState(0);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [carouselEvents, setCarouselEvents] = useState<Event[]>([]);
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isDescExpanded, setIsDescExpanded] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
 
@@ -285,16 +48,6 @@ const Events: React.FC = () => {
   useEffect(() => {
     setIsDescExpanded(false);
   }, [heroIndex]);
-
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (selectedEvent) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-    return () => { document.body.style.overflow = 'auto'; };
-  }, [selectedEvent]);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -340,13 +93,10 @@ const Events: React.FC = () => {
           setHeroEvents(hero);
           setCarouselEvents(past);
 
-          // If there's an eventId in the URL, open its details
+          // If there's an eventId in the URL, redirect to dedicated page
           const eventId = searchParams.get('eventId');
           if (eventId) {
-            const ev = data.find((e) => e.id === eventId);
-            if (ev) {
-              setSelectedEvent(ev);
-            }
+            navigate(`/events/${eventId}`, { replace: true });
           }
 
           // Preload the hero image before dismissing the loader
@@ -521,22 +271,31 @@ const Events: React.FC = () => {
                     >
                       <Play size={20} className="fill-white" /> Register Now
                     </a>
+                  ) : heroEvents[heroIndex].registration_link ? (
+                    <a 
+                      href={heroEvents[heroIndex].registration_link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-6 py-3 md:px-8 md:py-3.5 bg-slate-900 text-white font-bold text-base md:text-lg rounded-xl hover:bg-slate-800 transition-all flex items-center gap-2 md:gap-3 shadow-md w-full sm:w-auto justify-center"
+                    >
+                      Visit Event Website
+                    </a>
                   ) : (
                     <button className="px-6 py-3 md:px-8 md:py-3.5 bg-slate-200 text-slate-500 font-bold text-base md:text-lg rounded-xl cursor-not-allowed flex items-center gap-2 md:gap-3 w-full sm:w-auto justify-center">
-                      Registration Closed
+                      Event Concluded
                     </button>
                   )}
-                  <button 
-                    onClick={() => setSelectedEvent(heroEvents[heroIndex])}
+                  <Link 
+                    to={`/events/${slugify(heroEvents[heroIndex].name)}`}
                     className="px-6 py-3 md:px-8 md:py-3.5 bg-white text-slate-700 font-bold text-base md:text-lg rounded-xl border border-slate-200 hover:bg-slate-50 transition-all flex items-center gap-2 md:gap-3 shadow-sm w-full sm:w-auto justify-center"
                   >
                     <Info size={20} className="text-[#0ea5e9]" /> More Info
-                  </button>
+                  </Link>
                 </div>
               </motion.div>
             </AnimatePresence>
 
-            {/* Netflix-style Slide Controls â€” arrows + dots, shown on hover */}
+            {/* Netflix-style Slide Controls — arrows + dots, shown on hover */}
             {heroEvents.length > 1 && (
               <>
                 {/* Left Arrow */}
@@ -557,7 +316,7 @@ const Events: React.FC = () => {
                   <ChevronRight size={24} strokeWidth={2.5} />
                 </button>
 
-                {/* Dot Indicators â€” bottom center */}
+                {/* Dot Indicators — bottom center */}
                 <div className="absolute bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-2 z-30">
                   {heroEvents.map((_, idx) => (
                     <button
@@ -598,10 +357,10 @@ const Events: React.FC = () => {
           {showAllEvents ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-4 pb-16 px-2 md:px-4">
               {carouselEvents.map((event) => (
-                <div 
+                <Link 
                   key={event.id}
-                  onClick={() => setSelectedEvent(event)}
-                  className="h-[200px] md:h-[240px] relative rounded-xl overflow-hidden cursor-pointer border border-slate-200 bg-white group/card transition-all duration-500 hover:scale-105 hover:z-30 hover:shadow-xl shadow-sm"
+                  to={`/events/${slugify(event.name)}`}
+                  className="h-[200px] md:h-[240px] relative rounded-xl overflow-hidden cursor-pointer border border-slate-200 bg-white group/card transition-all duration-500 hover:scale-105 hover:z-30 hover:shadow-xl shadow-sm block"
                 >
                   <img 
                     src={toDirectImageUrl(event.poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"} 
@@ -621,7 +380,7 @@ const Events: React.FC = () => {
                       <span className="text-white/80">{new Date(event.event_date).getFullYear()}</span>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (
@@ -641,10 +400,10 @@ const Events: React.FC = () => {
                 className="flex gap-3 md:gap-4 overflow-x-auto pb-16 pt-6 px-2 md:px-4 snap-x snap-mandatory hide-scrollbar style-scrollbar"
               >
                 {carouselEvents.map((event) => (
-                  <div 
+                  <Link 
                     key={event.id}
-                    onClick={() => setSelectedEvent(event)}
-                    className="min-w-[260px] md:min-w-[320px] lg:min-w-[380px] h-[146px] md:h-[180px] lg:h-[214px] relative rounded-xl overflow-hidden snap-start cursor-pointer border border-slate-200 bg-white group/card transition-all duration-500 hover:scale-105 hover:z-30 hover:shadow-xl shadow-sm"
+                    to={`/events/${slugify(event.name)}`}
+                    className="min-w-[260px] md:min-w-[320px] lg:min-w-[380px] h-[146px] md:h-[180px] lg:h-[214px] relative rounded-xl overflow-hidden snap-start cursor-pointer border border-slate-200 bg-white group/card transition-all duration-500 hover:scale-105 hover:z-30 hover:shadow-xl shadow-sm shrink-0 block"
                   >
                     {/* Thumbnail Image */}
                     <img 
@@ -669,7 +428,7 @@ const Events: React.FC = () => {
                         <span className="text-white/80">{new Date(event.event_date).getFullYear()}</span>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
   
@@ -690,11 +449,6 @@ const Events: React.FC = () => {
           )}
         </div>
       )}
-
-      {/* Rich Event Detail Overlay */}
-      <AnimatePresence>
-        {selectedEvent && <EventDetailOverlay event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
-      </AnimatePresence>
 
     </div>
   );

@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { ChevronDown, ChevronUp, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { slugify } from '../lib/utils';
 
 interface Member {
   id: string;
@@ -47,14 +49,22 @@ const PresidentCard: React.FC<{ member: Member }> = ({ member }) => {
         </p>
         <div className="relative z-10">
           <h3 className="font-sans font-bold text-slate-900 text-2xl">{member.name}</h3>
-          <p className="text-[#0ea5e9] text-sm mt-1 font-semibold tracking-wide">{member.role}</p>
-          {member.linkedin_url && (
-            <a href={member.linkedin_url} target="_blank" rel="noreferrer" className="inline-flex mt-6 w-12 h-12 items-center justify-center rounded-full bg-white/60 border border-white/80 text-[#0077b5] hover:bg-white hover:shadow-md hover:-translate-y-0.5 transition-all">
-              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
-                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-              </svg>
-            </a>
-          )}
+          <p className="text-[#0ea5e9] text-sm mt-1 font-semibold tracking-wide mb-6">{member.role}</p>
+          <div className="flex items-center gap-3">
+            {member.linkedin_url && (
+              <a href={member.linkedin_url} target="_blank" rel="noreferrer" className="inline-flex w-12 h-12 items-center justify-center rounded-full bg-white/60 border border-white/80 text-[#0077b5] hover:bg-white hover:shadow-md hover:-translate-y-0.5 transition-all">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                </svg>
+              </a>
+            )}
+            <Link 
+              to={`/team/${slugify(member.name)}`}
+              className="h-12 px-6 flex items-center gap-2 rounded-full bg-[#0ea5e9] border border-[#0ea5e9] text-white font-sans text-sm font-bold hover:bg-[#0284c7] hover:border-[#0284c7] hover:shadow-md hover:-translate-y-0.5 transition-all"
+            >
+              View More
+            </Link>
+          </div>
         </div>
       </div>
       <div className="w-full md:w-1/2 relative min-h-[280px] md:min-h-[400px] bg-white/20">
@@ -80,7 +90,7 @@ const PresidentCard: React.FC<{ member: Member }> = ({ member }) => {
   );
 };
 
-const MemberCard: React.FC<{ member: Member; onViewBio?: (m: Member) => void }> = ({ member, onViewBio }) => {
+const MemberCard: React.FC<{ member: Member }> = ({ member }) => {
   const imgUrl = toDirectImageUrl(member.photo_url);
   const fallbackUrl = member.photo_url?.match(/\/d\/([a-zA-Z0-9_-]+)/) || member.photo_url?.match(/[?&]id=([a-zA-Z0-9_-]+)/)
     ? `https://drive.google.com/thumbnail?id=${(member.photo_url!.match(/\/d\/([a-zA-Z0-9_-]+)/) || member.photo_url!.match(/[?&]id=([a-zA-Z0-9_-]+)/))![1]}&sz=w1000`
@@ -141,13 +151,11 @@ const MemberCard: React.FC<{ member: Member; onViewBio?: (m: Member) => void }> 
               </svg>
             </a>
           )}
-          {member.bio && (
-            <button 
-              onClick={() => onViewBio?.(member)}
-              className="h-10 px-5 flex items-center gap-2 rounded-full bg-[#0ea5e9] border border-[#0ea5e9] text-white font-sans text-sm font-bold hover:bg-[#0284c7] hover:border-[#0284c7] hover:shadow-md hover:-translate-y-0.5 transition-all">
-              View Bio
-            </button>
-          )}
+          <Link 
+            to={`/team/${slugify(member.name)}`}
+            className="h-10 px-5 flex items-center gap-2 rounded-full bg-[#0ea5e9] border border-[#0ea5e9] text-white font-sans text-sm font-bold hover:bg-[#0284c7] hover:border-[#0284c7] hover:shadow-md hover:-translate-y-0.5 transition-all">
+            View More
+          </Link>
         </div>
       </div>
     </motion.div>
@@ -158,7 +166,6 @@ const Team: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAllPast, setShowAllPast] = useState(false);
-  const [selectedBio, setSelectedBio] = useState<Member | null>(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -252,7 +259,7 @@ const Team: React.FC = () => {
                       Vice Presidents & Community Managers
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
-                      {combined.map(m => <MemberCard key={m.id} member={m} onViewBio={setSelectedBio} />)}
+                      {combined.map(m => <MemberCard key={m.id} member={m} />)}
                     </div>
                   </div>
                 );
@@ -273,7 +280,7 @@ const Team: React.FC = () => {
                     </h2>
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-10">
-                      {group.map(m => <MemberCard key={m.id} member={m} onViewBio={setSelectedBio} />)}
+                      {group.map(m => <MemberCard key={m.id} member={m} />)}
                     </div>
                   </div>
                 );
@@ -361,53 +368,6 @@ const Team: React.FC = () => {
           )}
         </div>
       </div>
-
-      {/* ── Bio Modal ── */}
-      <AnimatePresence>
-        {selectedBio && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setSelectedBio(null)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg bg-white/80 backdrop-blur-2xl border border-white/60 shadow-2xl rounded-[2rem] p-8 overflow-hidden">
-              <button onClick={() => setSelectedBio(null)} className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors">
-                <svg viewBox="0 0 24 24" className="w-4 h-4" stroke="currentColor" strokeWidth="2" fill="none"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-              
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0">
-                  {toDirectImageUrl(selectedBio.photo_url) ? (
-                    <img src={toDirectImageUrl(selectedBio.photo_url)!} alt={selectedBio.name} className="w-full h-full object-cover object-center" 
-                         referrerPolicy="no-referrer"
-                         onError={(e) => { 
-                           const img = e.currentTarget;
-                           const match = selectedBio.photo_url?.match(/\/d\/([a-zA-Z0-9_-]+)/) || selectedBio.photo_url?.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-                           const fallback = match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000` : null;
-                           
-                           if (fallback && img.src !== fallback) {
-                             img.src = fallback;
-                           } else {
-                             img.style.display = 'none';
-                             img.nextElementSibling?.classList.remove('hidden');
-                           }
-                         }} />
-                  ) : <div className="w-full h-full flex items-center justify-center"><User size={24} className="text-slate-300" /></div>}
-                </div>
-                <div>
-                  <h3 className="font-sans font-bold text-slate-900 text-xl">{selectedBio.name}</h3>
-                  <p className="text-[#0ea5e9] text-sm font-semibold">{selectedBio.role}</p>
-                </div>
-              </div>
-              
-              <div className="relative">
-                <div className="absolute top-0 left-0 text-6xl text-slate-200 font-serif leading-none -mt-4 -ml-2 select-none">"</div>
-                <p className="text-slate-700 leading-relaxed font-sans relative z-10">{selectedBio.bio}</p>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
     </div>
   );

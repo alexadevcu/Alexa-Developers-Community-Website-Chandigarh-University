@@ -5,7 +5,9 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Join from './pages/Join';
 import Events from './pages/Events';
+import EventDetail from './pages/EventDetail';
 import Team from './pages/Team';
+import TeamMemberDetail from './pages/TeamMemberDetail';
 import Legacy from './pages/Legacy';
 import HallOfFame from './pages/HallOfFame';
 import Admin from './pages/Admin';
@@ -36,7 +38,9 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/events" element={<Events />} />
+              <Route path="/events/:id" element={<EventDetail />} />
               <Route path="/team" element={<Team />} />
+              <Route path="/team/:id" element={<TeamMemberDetail />} />
               <Route path="/legacy" element={<Legacy />} />
               <Route path="/hall-of-fame" element={<HallOfFame />} />
               <Route path="/join" element={<Join />} />
