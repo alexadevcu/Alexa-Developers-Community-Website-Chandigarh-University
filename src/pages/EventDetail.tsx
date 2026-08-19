@@ -6,7 +6,6 @@ import {
   MapPin, 
   ExternalLink, 
   ArrowLeft, 
-  Clock, 
   Sparkles, 
   ShieldCheck, 
   Award, 
@@ -279,8 +278,87 @@ const EventDetail: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6 md:px-12 pt-10">
         <div className="flex flex-col lg:flex-row gap-12">
           
-          {/* ── Left Main Content Column ────────────────────────── */}
-          <div className="flex-1 min-w-0">
+          {/* ── Right Sidebar Column (Poster & Actions - First on mobile) ── */}
+          <div className="w-full lg:w-96 shrink-0 order-1 lg:order-2">
+            <div className="space-y-6">
+              
+              {/* Event Poster Card */}
+              <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="aspect-[3/4] w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 relative group">
+                  <img 
+                    src={posterSrc} 
+                    alt={event.name} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+
+              {/* Action Box: Countdown & Registration */}
+              <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
+                
+                {/* Dates */}
+                <div className="mb-4 pb-4 border-b border-slate-100">
+                  <p className="text-xs uppercase tracking-widest font-mono text-slate-400 mb-1">Runs From</p>
+                  <p className="text-base font-bold text-slate-800">{formatDateRange()}</p>
+                </div>
+
+                {/* Venue */}
+                <div className="mb-6 pb-4 border-b border-slate-100">
+                  <p className="text-xs uppercase tracking-widest font-mono text-slate-400 mb-1">Happening At</p>
+                  <p className="text-base font-bold text-slate-800">{event.venue || defaultVenue}</p>
+                </div>
+
+                {/* Countdown Timer */}
+                {event.status === 'upcoming' && !countdown.over && (
+                  <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center">
+                    <p className="text-xs uppercase tracking-widest font-mono text-slate-400 mb-1">Applications Close In</p>
+                    <p className="text-2xl font-black text-slate-900 font-mono tracking-tight">
+                      {countdown.d}d:{String(countdown.h).padStart(2, '0')}h:{String(countdown.m).padStart(2, '0')}m
+                    </p>
+                  </div>
+                )}
+                {event.status !== 'upcoming' && (
+                  <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center">
+                    <p className="text-xs uppercase tracking-widest font-mono text-slate-400 mb-0.5">Status</p>
+                    <p className="text-sm font-bold text-slate-600">Event Completed</p>
+                  </div>
+                )}
+
+                {/* CTA */}
+                {event.status === 'upcoming' && event.is_registration_open !== false && event.registration_link ? (
+                  <a 
+                    href={event.registration_link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full py-4 bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-bold rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 text-base"
+                  >
+                    Register Now <ExternalLink size={18} />
+                  </a>
+                ) : event.show_external_website && event.registration_link ? (
+                  <a 
+                    href={event.registration_link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 text-base"
+                  >
+                    Visit Event Website <ExternalLink size={18} />
+                  </a>
+                ) : (
+                  <button 
+                    disabled 
+                    className="w-full py-4 bg-slate-200 text-slate-400 font-bold rounded-2xl cursor-not-allowed text-base"
+                  >
+                    Registrations Closed
+                  </button>
+                )}
+                <p className="text-center text-xs text-slate-400 mt-3 font-medium">Registrations are managed externally.</p>
+              </div>
+
+            </div>
+          </div>
+
+          {/* ── Left Main Content Column (Second on mobile) ── */}
+          <div className="flex-1 min-w-0 order-2 lg:order-1">
             
             {/* About the Event */}
             <div className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-sm mb-8">
@@ -358,86 +436,6 @@ const EventDetail: React.FC = () => {
               </div>
             )}
 
-          </div>
-
-          {/* ── Right Sidebar Column ────────────────────────── */}
-          <div className="w-full lg:w-96 shrink-0">
-            <div className="space-y-6">
-              
-              {/* Event Poster Card */}
-              <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div className="aspect-[3/4] w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 relative group">
-                  <img 
-                    src={posterSrc} 
-                    alt={event.name} 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </div>
-
-              {/* Action Box: Countdown & Registration */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
-                
-                {/* Dates */}
-                <div className="mb-4 pb-4 border-b border-slate-100">
-                  <p className="text-xs uppercase tracking-widest font-mono text-slate-400 mb-1">Runs From</p>
-                  <p className="text-base font-bold text-slate-800">{formatDateRange()}</p>
-                </div>
-
-                {/* Venue */}
-                <div className="mb-6 pb-4 border-b border-slate-100">
-                  <p className="text-xs uppercase tracking-widest font-mono text-slate-400 mb-1">Happening At</p>
-                  <p className="text-base font-bold text-slate-800">{event.venue || defaultVenue}</p>
-                </div>
-
-                {/* Countdown Timer */}
-                {event.status === 'upcoming' && !countdown.over && (
-                  <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center">
-                    <p className="text-xs uppercase tracking-widest font-mono text-slate-400 mb-2 flex items-center justify-center gap-1.5">
-                      <Clock size={14} className="text-[#0ea5e9]" /> Applications Close In
-                    </p>
-                    <div className="text-3xl font-black text-slate-900 font-mono tracking-tight">
-                      {countdown.d}d:{String(countdown.h).padStart(2,'0')}h:{String(countdown.m).padStart(2,'0')}m
-                    </div>
-                  </div>
-                )}
-
-                {/* Registration / External Website CTA Button */}
-                {event.status === 'upcoming' && event.is_registration_open !== false && event.registration_link ? (
-                  <a
-                    href={event.registration_link}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full py-4 bg-[#0ea5e9] text-white font-bold text-lg rounded-2xl hover:bg-[#0284c7] transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-[0.98]"
-                  >
-                    Register Now <ExternalLink size={18} />
-                  </a>
-                ) : event.registration_link && event.show_external_website ? (
-                  <a
-                    href={event.registration_link}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full py-4 bg-slate-900 text-white font-bold text-base rounded-2xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-[0.98]"
-                  >
-                    Visit Event Website <ExternalLink size={18} />
-                  </a>
-                ) : (
-                  <button 
-                    disabled 
-                    className="w-full py-4 bg-slate-100 text-slate-400 font-bold text-base rounded-2xl cursor-not-allowed text-center"
-                  >
-                    {event.status === 'upcoming' ? 'Registration Closed' : 'Event Concluded'}
-                  </button>
-                )}
-
-                <div className="mt-4 pt-4 border-t border-slate-100 text-center">
-                  <p className="text-xs text-slate-400">
-                    Hosted by <span className="font-semibold text-slate-600">Alexa Developers Community — CU</span>
-                  </p>
-                </div>
-              </div>
-
-            </div>
           </div>
 
         </div>

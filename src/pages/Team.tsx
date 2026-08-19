@@ -42,7 +42,29 @@ const PresidentCard: React.FC<{ member: Member }> = ({ member }) => {
 
   return (
     <div className="w-full flex flex-col md:flex-row bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_32px_rgba(31,38,135,0.05)] rounded-[2.5rem] overflow-hidden mb-24">
-      <div className="w-full md:w-1/2 p-6 md:p-16 lg:p-24 flex flex-col justify-center relative">
+      {/* Photo Container (First on mobile) */}
+      <div className="w-full md:w-1/2 relative min-h-[280px] md:min-h-[400px] bg-white/20 order-1 md:order-2">
+        {imgUrl ? (
+          <img src={imgUrl} alt={member.name} className="absolute inset-0 w-full h-full object-cover object-center"
+            referrerPolicy="no-referrer"
+            onError={(e) => { 
+              const img = e.currentTarget;
+              if (fallbackUrl && img.src !== fallbackUrl) {
+                img.src = fallbackUrl;
+              } else {
+                img.style.display = 'none';
+                img.nextElementSibling?.classList.remove('hidden');
+              }
+            }}
+          />
+        ) : null}
+        <div className={`${imgUrl ? 'hidden' : ''} w-full h-full flex items-center justify-center min-h-[400px] backdrop-blur-sm`}>
+           <User size={100} className="text-[#0ea5e9]/20" />
+        </div>
+      </div>
+
+      {/* Info Container (Second on mobile) */}
+      <div className="w-full md:w-1/2 p-6 md:p-16 lg:p-24 flex flex-col justify-center relative order-2 md:order-1">
         <div className="absolute top-10 left-10 text-[10rem] text-[#0ea5e9]/5 font-serif leading-none select-none hidden md:block">"</div>
         <p className="text-lg md:text-3xl lg:text-4xl font-sans font-light text-slate-800 leading-tight mb-6 md:mb-10 relative z-10">
           {member.bio || 'Leading with innovation and a vision for the future of technology.'}
@@ -65,25 +87,6 @@ const PresidentCard: React.FC<{ member: Member }> = ({ member }) => {
               View More
             </Link>
           </div>
-        </div>
-      </div>
-      <div className="w-full md:w-1/2 relative min-h-[280px] md:min-h-[400px] bg-white/20">
-        {imgUrl ? (
-          <img src={imgUrl} alt={member.name} className="absolute inset-0 w-full h-full object-cover object-center"
-            referrerPolicy="no-referrer"
-            onError={(e) => { 
-              const img = e.currentTarget;
-              if (fallbackUrl && img.src !== fallbackUrl) {
-                img.src = fallbackUrl;
-              } else {
-                img.style.display = 'none';
-                img.nextElementSibling?.classList.remove('hidden');
-              }
-            }}
-          />
-        ) : null}
-        <div className={`${imgUrl ? 'hidden' : ''} w-full h-full flex items-center justify-center min-h-[400px] backdrop-blur-sm`}>
-           <User size={100} className="text-[#0ea5e9]/20" />
         </div>
       </div>
     </div>
