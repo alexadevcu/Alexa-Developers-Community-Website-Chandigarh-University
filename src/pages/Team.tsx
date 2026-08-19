@@ -104,7 +104,7 @@ const MemberCard: React.FC<{ member: Member }> = ({ member }) => {
       className="flex flex-col group bg-white/40 backdrop-blur-xl border border-white/60 shadow-[0_8px_32px_rgba(31,38,135,0.05)] rounded-[2rem] overflow-hidden hover:bg-white/60 hover:shadow-[0_12px_40px_rgba(31,38,135,0.08)] hover:-translate-y-1 transition-all duration-300"
     >
       {/* Photo Container */}
-      <div className="relative w-full aspect-[4/5] overflow-hidden bg-white/30 border-b border-white/40">
+      <Link to={`/team/${slugify(member.name)}`} className="relative w-full aspect-[4/5] overflow-hidden bg-white/30 border-b border-white/40 block">
         {imgUrl ? (
           <img
             src={imgUrl}
@@ -126,34 +126,40 @@ const MemberCard: React.FC<{ member: Member }> = ({ member }) => {
         <div className={`${imgUrl ? 'hidden' : ''} w-full h-full flex items-center justify-center`}>
            <User size={64} className="text-[#0ea5e9]/20" />
         </div>
-      </div>
+      </Link>
 
       {/* Info */}
-      <div className="flex flex-col flex-grow p-6">
-        <h3 className="font-sans font-bold text-slate-900 text-lg leading-tight mb-1">
-          {member.name}
-        </h3>
-        <p className="text-[#0ea5e9]/80 font-medium text-sm mb-6 line-clamp-2">
+      <div className="flex flex-col flex-grow p-4 sm:p-5">
+        <Link to={`/team/${slugify(member.name)}`} className="block group-hover:text-[#0ea5e9] transition-colors">
+          <h3 className="font-sans font-bold text-slate-900 text-base sm:text-lg leading-tight mb-1 truncate">
+            {member.name}
+          </h3>
+        </Link>
+        <p className="text-[#0ea5e9]/80 font-medium text-xs sm:text-sm mb-4 line-clamp-1">
           {member.role}
         </p>
 
-        {/* Buttons */}
-        <div className="flex items-center gap-3 mt-auto pt-2">
-          {member.linkedin_url && (
+        {/* Action Bar */}
+        <div className="flex items-center justify-between gap-2 mt-auto pt-3 border-t border-slate-100/80">
+          {member.linkedin_url ? (
             <a
               href={member.linkedin_url}
               target="_blank"
               rel="noreferrer"
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-white/60 backdrop-blur-sm border border-white/80 text-[#0077b5] hover:bg-white hover:shadow-md hover:-translate-y-0.5 transition-all"
+              onClick={(e) => e.stopPropagation()}
+              className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-white/70 border border-slate-200/80 text-[#0077b5] hover:bg-[#0077b5] hover:text-white transition-all shadow-sm"
+              title="LinkedIn Profile"
             >
-              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
                 <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
               </svg>
             </a>
-          )}
+          ) : <div />}
+
           <Link 
             to={`/team/${slugify(member.name)}`}
-            className="h-10 px-5 flex items-center gap-2 rounded-full bg-[#0ea5e9] border border-[#0ea5e9] text-white font-sans text-sm font-bold hover:bg-[#0284c7] hover:border-[#0284c7] hover:shadow-md hover:-translate-y-0.5 transition-all">
+            className="px-3.5 py-1.5 text-xs font-bold rounded-full bg-[#0ea5e9] text-white hover:bg-[#0284c7] hover:shadow-md transition-all shrink-0 whitespace-nowrap"
+          >
             View More
           </Link>
         </div>
