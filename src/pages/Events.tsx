@@ -30,6 +30,7 @@ interface Event {
   why_participate?: string | null;
   eligibility?: string | null;
   rules_guidelines?: string | null;
+  show_external_website?: boolean;
 }
 
 const Events: React.FC = () => {
@@ -271,7 +272,7 @@ const Events: React.FC = () => {
                     >
                       <Play size={20} className="fill-white" /> Register Now
                     </a>
-                  ) : heroEvents[heroIndex].registration_link ? (
+                  ) : (heroEvents[heroIndex].show_external_website && heroEvents[heroIndex].registration_link) ? (
                     <a 
                       href={heroEvents[heroIndex].registration_link}
                       target="_blank"

@@ -135,7 +135,7 @@ const MemberCard: React.FC<{ member: Member }> = ({ member }) => {
             {member.name}
           </h3>
         </Link>
-        <p className="text-[#0ea5e9]/80 font-medium text-xs sm:text-sm mb-4 line-clamp-1">
+        <p className="text-[#0ea5e9] font-semibold text-xs sm:text-sm mb-4 leading-snug break-words min-h-[2.25rem]">
           {member.role}
         </p>
 
@@ -358,7 +358,7 @@ const Team: React.FC = () => {
                         <div className={`${toDirectImageUrl(m.photo_url) ? 'hidden' : ''} w-full h-full flex items-center justify-center`}><User size={32} className="text-[#0ea5e9]/20" /></div>
                       </div>
                       <p className="font-sans font-bold text-slate-900 text-sm leading-tight mb-0.5 truncate">{m.name}</p>
-                      <p className="text-[#0ea5e9]/80 text-xs font-medium truncate">{m.role}</p>
+                      <p className="text-[#0ea5e9] text-xs font-semibold leading-snug break-words">{m.role}</p>
                     </div>
                   ))}
                   {pastMembers.length > 8 && (
