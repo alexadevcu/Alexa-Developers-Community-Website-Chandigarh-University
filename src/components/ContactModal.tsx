@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Mail, User, MessageSquare } from 'lucide-react';
+import { isValidEmail } from '../lib/utils';
 
 interface ContactModalProps {
   isOpen: boolean;
@@ -14,6 +15,12 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isValidEmail(formData.email)) {
+      alert("Please enter a valid, complete email address (e.g. name@example.com or student@cuchd.in).");
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
@@ -136,6 +143,8 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
                         value={formData.email}
                         onChange={handleChange}
                         required
+                        pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+                        title="Please enter a valid email address (e.g. name@example.com or student@cuchd.in)"
                         placeholder="alex@example.com"
                         className="w-full bg-surface-variant/50 border border-outline-variant/30 rounded-2xl py-3 pl-12 pr-4 text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-[#00caff] focus:border-transparent transition-all"
                       />

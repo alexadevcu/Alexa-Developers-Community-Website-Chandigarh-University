@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Lock, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logo from '../assets/Alexa Circular logo.png';
+import { isValidEmail } from '../lib/utils';
 
 const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -25,6 +26,12 @@ const AdminLogin: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
+    if (!isValidEmail(email)) {
+      setError('Please enter a valid, complete email address (e.g. admin@example.com).');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -72,6 +79,8 @@ const AdminLogin: React.FC = () => {
                   <input
                     type="email"
                     required
+                    pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+                    title="Please enter a valid email address (e.g. admin@example.com)"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="admin@adc.cu"

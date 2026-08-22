@@ -1212,6 +1212,8 @@ const Admin: React.FC = () => {
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
                       <input type="email" placeholder="name@example.com"
+                        pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+                        title="Please enter a valid email address (e.g. name@example.com)"
                         value={memberForm.email || ''} onChange={e => setMemberForm({ ...memberForm, email: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
                     </div>
