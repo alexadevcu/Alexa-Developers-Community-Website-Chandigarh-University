@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Mail, User, MessageSquare } from 'lucide-react';
+import { X, Send, Mail, User, MessageSquare, Users, ArrowRight } from 'lucide-react';
 import { isValidEmail } from '../lib/utils';
 
 interface ContactModalProps {
@@ -99,9 +100,25 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
 
             <div className="p-10">
               <h2 className="font-headline-xl text-3xl text-on-surface mb-2">Get in Touch</h2>
-              <p className="font-body-md text-on-surface-variant mb-8">
+              <p className="font-body-md text-on-surface-variant mb-6">
                 Have questions about the community or want to collaborate? Send us a message!
               </p>
+
+              {/* Join Community Option */}
+              <div className="bg-[#00caff]/10 border border-[#00caff]/20 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="font-bold text-sm text-[#006783] flex items-center gap-1.5">
+                    <Users size={16} /> Looking to Join ADC CU?
+                  </h4>
+                </div>
+                <Link
+                  to="/join"
+                  onClick={onClose}
+                  className="px-4 py-2 bg-[#006783] text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-[#004d63] transition-all shrink-0 flex items-center gap-1.5 shadow-sm"
+                >
+                  Join Us <ArrowRight size={14} />
+                </Link>
+              </div>
 
               {isSuccess ? (
                 <motion.div
