@@ -56,7 +56,7 @@ const Footer: React.FC = () => {
 
           {/* Column 2: Digital Ecosystem */}
           <div className="flex flex-col space-y-6">
-            <h3 className="text-white font-headline-sm font-bold uppercase tracking-widest text-sm opacity-90">Digital Ecosystem</h3>
+            <h3 className="text-white font-headline-sm font-bold tracking-wide text-sm opacity-90">Digital Ecosystem</h3>
             <div className="flex flex-col space-y-5">
               <a href="https://www.linkedin.com/company/alexadevscu/posts/" target="_blank" rel="noreferrer" className="group flex flex-col">
                 <span className="flex items-center space-x-3 text-white font-sans text-sm font-medium group-hover:text-[#00caff] transition-colors duration-300">
@@ -81,7 +81,7 @@ const Footer: React.FC = () => {
 
           {/* Column 3: Direct Communications */}
           <div className="flex flex-col space-y-6">
-            <h3 className="text-white font-headline-sm font-bold uppercase tracking-widest text-sm opacity-90">Direct Comm</h3>
+            <h3 className="text-white font-headline-sm font-bold tracking-wide text-sm opacity-90">Direct Comm</h3>
             <div className="flex flex-col space-y-6">
               <div className="flex flex-col group">
                 <a href="mailto:adc.cu@cumail.in" className="text-white font-sans text-sm font-medium group-hover:text-[#00caff] transition-colors duration-300 flex items-center gap-2">
@@ -91,7 +91,7 @@ const Footer: React.FC = () => {
                 <span className="text-[#bce9ff]/50 text-xs mt-2">Mentor outreach and support</span>
               </div>
               <div className="flex flex-col p-4 bg-white/5 rounded-xl border border-white/5">
-                <span className="text-[#00caff] font-mono text-[10px] uppercase tracking-widest mb-1 font-bold">Operating Hours</span>
+                <span className="text-[#00caff] font-mono text-xs uppercase tracking-widest mb-1 font-bold">Operating Hours</span>
                 <span className="text-white font-sans text-sm">Mon - Fri: 09:00 AM - 04:30 PM IST</span>
               </div>
             </div>
@@ -99,7 +99,7 @@ const Footer: React.FC = () => {
 
           {/* Column 4: Quick Directory Navigation */}
           <div className="flex flex-col space-y-6">
-            <h3 className="text-white font-headline-sm font-bold uppercase tracking-widest text-sm opacity-90">Directory</h3>
+            <h3 className="text-white font-headline-sm font-bold tracking-wide text-sm opacity-90">Directory</h3>
             <div className="flex flex-col space-y-3">
               {[
                 { label: 'Home', href: '/' },
@@ -120,17 +120,17 @@ const Footer: React.FC = () => {
 
         {/* 🔒 The Copyright & Credit Bar */}
         <div className="max-w-7xl mx-auto border-t border-white/10 pt-8 mt-12 flex flex-col md:flex-row items-center justify-between text-center md:text-left gap-6">
-          <p className="text-[#bce9ff]/50 font-mono text-[10px] sm:text-xs uppercase tracking-[0.1em] leading-relaxed max-w-xl">
+          <p className="text-[#bce9ff]/50 font-mono text-xs uppercase tracking-[0.1em] leading-relaxed max-w-xl">
             &copy; {new Date().getFullYear()} Alexa Developers Community - Chandigarh University. All Rights Reserved.
           </p>
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="flex flex-col items-center md:items-end text-right">
-              <span className="text-[#bce9ff]/50 font-mono text-[10px] uppercase tracking-[0.1em] mb-2">In Collaboration With</span>
+              <span className="text-[#bce9ff]/50 font-mono text-xs uppercase tracking-[0.1em] mb-2">In Collaboration With</span>
               <img src={cuLogo} alt="Chandigarh University" className="h-14 object-contain opacity-90 hover:opacity-100 transition-opacity drop-shadow-md" />
             </div>
             <div className="hidden md:block w-px h-12 bg-white/10"></div>
             <div className="flex flex-col items-center md:items-start">
-              <span className="text-[#bce9ff]/50 font-mono text-[10px] uppercase tracking-[0.1em] mb-1">Engineered under</span>
+              <span className="text-[#bce9ff]/50 font-mono text-xs uppercase tracking-[0.1em] mb-1">Engineered under</span>
               <span className="text-sm font-bold tracking-wide text-[#00caff]">
                 <a
                   href="https://linktr.ee/vasu_gera"

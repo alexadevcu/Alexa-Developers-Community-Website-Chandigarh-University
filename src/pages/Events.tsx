@@ -192,10 +192,10 @@ const Events: React.FC = () => {
               <img 
                 src={toDirectImageUrl(heroEvents[heroIndex].poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop"} 
                 alt={heroEvents[heroIndex].name} 
-                className="w-full h-full object-cover origin-center opacity-70"
+                className="w-full h-full object-cover origin-center opacity-40"
               />
               {/* Soft Gradient Overlays for Light Theme text contrast */}
-              <div className="absolute inset-0 bg-gradient-to-r from-slate-50 via-slate-50/90 to-transparent w-full md:w-[75%] z-10"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-50 via-slate-50/95 to-transparent w-full md:w-[70%] z-10"></div>
               <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-slate-50/70 to-transparent h-full z-10"></div>
             </motion.div>
           </AnimatePresence>
@@ -222,13 +222,13 @@ const Events: React.FC = () => {
                       PAST HIGHLIGHT
                     </div>
                   )}
-                  <span className="text-[#0ea5e9] font-mono text-xs md:text-sm uppercase tracking-widest font-bold">
+                  <span className="text-[#0ea5e9] font-mono text-xs md:text-sm font-bold">
                     {heroEvents[heroIndex].type}
                   </span>
                 </div>
                 
                 {/* Title */}
-                <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-9xl font-display font-black text-slate-800 mb-4 md:mb-6 tracking-tighter leading-[0.9] drop-shadow-sm max-w-5xl uppercase">
+                <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-display font-black text-slate-900 mb-4 md:mb-6 tracking-tight leading-[0.95] drop-shadow-sm max-w-5xl">
                   {heroEvents[heroIndex].name}
                 </h1>
                 
@@ -343,13 +343,13 @@ const Events: React.FC = () => {
       {/* --- EVENT ARCHIVES CAROUSEL & GRID --- */}
       {carouselEvents.length > 0 && (
         <div className="w-full mt-10 md:-mt-24 relative z-20 px-4 md:px-12 lg:px-16">
-          <div className="flex justify-between items-end mb-4 ml-2 md:ml-4">
-            <h2 className="font-display text-2xl md:text-3xl font-bold text-slate-800 tracking-tight drop-shadow-sm">
+          <div className="flex justify-between items-center max-w-7xl mx-auto mb-6 px-2 md:px-4">
+            <h2 className="font-display text-2xl md:text-3xl font-bold text-slate-900 tracking-tight drop-shadow-sm">
               Event Archives & Highlights
             </h2>
             <button 
               onClick={() => setShowAllEvents(!showAllEvents)} 
-              className="text-[#0ea5e9] font-bold text-sm uppercase tracking-widest hover:underline whitespace-nowrap px-4"
+              className="text-[#0ea5e9] font-bold text-sm tracking-wide hover:underline whitespace-nowrap px-4"
             >
               {showAllEvents ? 'View Carousel' : 'View All'}
             </button>
@@ -368,9 +368,9 @@ const Events: React.FC = () => {
                     alt={event.name} 
                     className="absolute inset-0 w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/30 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/70 to-transparent" />
                   <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-5">
-                    <span className="text-[#0ea5e9] font-bold text-[10px] uppercase tracking-[0.2em] mb-1 drop-shadow-sm">
+                    <span className="text-[#0ea5e9] font-bold text-xs uppercase tracking-wider mb-1 drop-shadow-sm">
                       {event.type}
                     </span>
                     <h3 className="font-display text-base md:text-lg text-white font-bold leading-tight mb-2 drop-shadow-md">
@@ -390,9 +390,10 @@ const Events: React.FC = () => {
               {/* Scroll Left Button */}
               <button 
                 onClick={() => scrollCarousel('left')}
-                className="absolute left-0 top-0 bottom-0 z-40 w-12 md:w-16 bg-gradient-to-r from-slate-50 to-transparent flex items-center justify-start opacity-0 group-hover/slider:opacity-100 transition-opacity duration-300"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-40 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white border border-slate-200 shadow-xl text-slate-800 hover:text-[#0ea5e9] flex items-center justify-center transition-all hover:scale-110"
+                aria-label="Scroll left"
               >
-                <ChevronLeft size={48} className="text-slate-800 hover:scale-110 transition-transform drop-shadow-md ml-[-10px]" />
+                <ChevronLeft size={24} strokeWidth={2.5} />
               </button>
   
               {/* Scroll Area */}
@@ -413,12 +414,12 @@ const Events: React.FC = () => {
                       className="absolute inset-0 w-full h-full object-cover"
                     />
                     
-                    {/* Constant subtle vignette (Light variation) */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/30 to-transparent" />
+                    {/* Dark gradient vignette */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/70 to-transparent" />
                     
-                    {/* Content - ALWAYS VISIBLE */}
+                    {/* Content */}
                     <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-5">
-                      <span className="text-[#0ea5e9] font-bold text-[10px] uppercase tracking-[0.2em] mb-1 drop-shadow-sm">
+                      <span className="text-[#0ea5e9] font-bold text-xs uppercase tracking-wider mb-1 drop-shadow-sm">
                         {event.type}
                       </span>
                       <h3 className="font-display text-base md:text-lg text-white font-bold leading-tight mb-2 drop-shadow-md">
@@ -436,9 +437,10 @@ const Events: React.FC = () => {
               {/* Scroll Right Button */}
               <button 
                 onClick={() => scrollCarousel('right')}
-                className="absolute right-0 top-0 bottom-0 z-40 w-12 md:w-16 bg-gradient-to-l from-slate-50 to-transparent flex items-center justify-end opacity-0 group-hover/slider:opacity-100 transition-opacity duration-300"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-40 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white border border-slate-200 shadow-xl text-slate-800 hover:text-[#0ea5e9] flex items-center justify-center transition-all hover:scale-110"
+                aria-label="Scroll right"
               >
-                <ChevronRight size={48} className="text-slate-800 hover:scale-110 transition-transform drop-shadow-md mr-[-10px]" />
+                <ChevronRight size={24} strokeWidth={2.5} />
               </button>
   
               {/* Hide scrollbar completely but allow scrolling */}

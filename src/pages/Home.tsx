@@ -227,7 +227,7 @@ const Home = () => {
 
             <motion.div
               initial="hidden" animate="visible" variants={staggerContainer}
-              className="max-w-3xl z-10 relative pt-12 pb-12 pointer-events-none"
+              className="max-w-3xl z-10 relative pt-12 pb-12"
             >
               <motion.h1 variants={fadeUpVariant} className="font-headline-xl text-on-surface leading-[1.05] tracking-tighter mb-4 md:mb-6 text-[2rem] sm:text-5xl md:text-6xl lg:text-7xl font-bold text-left drop-shadow-sm">
                 Building the Next Generation of <span className="text-[#006783] drop-shadow-md">Innovators</span>
@@ -235,12 +235,20 @@ const Home = () => {
               <motion.p variants={fadeUpVariant} className="font-body-lg text-on-surface-variant max-w-xl text-base sm:text-xl md:text-2xl font-medium text-left drop-shadow-sm leading-relaxed">
                 Through workshops, hackathons, research initiatives, and a thriving community of technology enthusiasts.
               </motion.p>
+              <motion.div variants={fadeUpVariant} className="mt-8 flex flex-wrap gap-4 items-center">
+                <Link to="/join" className="px-8 py-3.5 bg-[#006783] text-white font-bold text-base rounded-full hover:bg-[#004d63] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+                  Join the Community
+                </Link>
+                <Link to="/events" className="px-8 py-3.5 border border-[#006783] text-[#006783] font-bold text-base rounded-full hover:bg-[#006783]/10 transition-all">
+                  Explore Events
+                </Link>
+              </motion.div>
             </motion.div>
           </section>
 
           {/* 3. Sponsors Marquee */}
-          <section className="py-12 bg-white overflow-hidden relative z-10">
-            <h3 className="text-center font-headline-md text-xl md:text-2xl text-on-surface-variant mb-10 tracking-widest uppercase">Past Sponsors</h3>
+          <section className="py-20 md:py-24 bg-white overflow-hidden relative z-10">
+            <h2 className="text-center font-headline-md text-xl md:text-2xl text-on-surface-variant mb-12 md:mb-16 tracking-widest uppercase">Past Sponsors</h2>
             <div className="relative w-full overflow-hidden">
               {/* Pure white fade overlays for left and right edges */}
               <div
@@ -358,8 +366,8 @@ const Home = () => {
                       <div className="p-5 flex-grow flex flex-col">
                         <p className="text-[#006783] font-label-sm uppercase tracking-widest mb-2 text-xs">{month} {day}, {year}</p>
                         <h3 className="font-headline-md text-on-surface mb-3 text-lg leading-tight">{event.name}</h3>
-                        <div className="mt-auto flex items-center gap-2 text-on-surface-variant font-label-sm uppercase tracking-widest text-xs">
-                          View Details <ArrowRight size={14} />
+                        <div className="mt-auto inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#006783]/10 text-[#006783] font-bold text-xs group-hover:bg-[#006783] group-hover:text-white transition-all w-fit">
+                          View Details <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                         </div>
                       </div>
                     </Link>
@@ -394,8 +402,8 @@ const Home = () => {
                       <div className="p-8 flex-grow flex flex-col">
                         <p className="text-[#006783] font-label-sm uppercase tracking-widest mb-3">{month} {day}, {year}</p>
                         <h3 className="font-headline-md text-on-surface mb-4 text-2xl leading-tight group-hover:text-[#006783] transition-colors">{event.name}</h3>
-                        <div className="mt-auto flex items-center gap-2 text-on-surface-variant font-label-sm uppercase tracking-widest group-hover:text-[#006783] transition-colors">
-                          View Details <ArrowRight size={16} className="-translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
+                        <div className="mt-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#006783]/10 text-[#006783] font-bold text-xs md:text-sm group-hover:bg-[#006783] group-hover:text-white transition-all w-fit">
+                          View Details <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </div>
                       </div>
                     </Link>
@@ -420,12 +428,12 @@ const Home = () => {
                 {[
                   { icon: <Users className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: 1500, suffix: '+', label: 'Active Members' },
                   { icon: <Calendar className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: totalEvents + 48, suffix: '+', label: 'Events Hosted' },
-                  { icon: <Award className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: 12, suffix: '+', label: 'Hackathons and Ideathons won by team' }
+                  { icon: <Award className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: 12, suffix: '+', label: 'Hackathons and ideathons won by team' }
                 ].map((stat, i) => (
-                  <div key={i} className="glass-card p-4 md:p-10 flex flex-col items-center justify-center text-center rounded-[1.5rem] md:rounded-[2rem]">
+                  <div key={i} className="glass-card p-4 md:p-10 flex flex-col items-center justify-center text-center rounded-3xl">
                     {stat.icon}
                     <Counter value={stat.val} suffix={stat.suffix} />
-                    <span className="font-label-md tracking-widest uppercase text-on-surface-variant mt-2 md:mt-4 text-[10px] md:text-sm leading-tight">{stat.label}</span>
+                    <span className="font-label-md text-on-surface-variant mt-2 md:mt-4 text-xs md:text-sm leading-tight">{stat.label}</span>
                   </div>
                 ))}
               </div>
@@ -439,24 +447,17 @@ const Home = () => {
             </div>
 
             {/* Bento Box Gallery Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 auto-rows-[160px] md:auto-rows-[250px]">
-              {/* Left Large Vertical Image */}
-              <div className="col-span-2 md:col-span-1 row-span-1 md:row-span-2 rounded-[1.5rem] md:rounded-[2rem] overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+              <div className="aspect-[4/3] rounded-3xl overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-md">
                 <img src={gal1} alt="ADC Community Event" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
               </div>
-
-              {/* Right Top Left */}
-              <div className="rounded-[1.5rem] md:rounded-[2rem] overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-lg">
+              <div className="aspect-[4/3] rounded-3xl overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-md">
                 <img src={gal2} alt="ADC Students Collaborating" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
               </div>
-
-              {/* Right Top Right */}
-              <div className="rounded-[1.5rem] md:rounded-[2rem] overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-lg">
+              <div className="aspect-[4/3] rounded-3xl overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-md">
                 <img src={gal3} alt="ADC Team Project" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
               </div>
-
-              {/* Right Bottom Wide */}
-              <div className="col-span-2 md:col-span-2 md:row-span-1 rounded-[1.5rem] md:rounded-[2rem] overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-lg">
+              <div className="sm:col-span-2 md:col-span-3 aspect-[21/9] rounded-3xl overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-md">
                 <img src={gal4} alt="ADC Team Gathering" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
               </div>
             </div>
@@ -498,8 +499,8 @@ const Home = () => {
                   <div className="flex items-center gap-4 mt-auto">
                     <img src={testimonial.avatar} alt={testimonial.name} className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm" />
                     <div>
-                      <h4 className="font-headline-md text-on-surface text-lg font-bold">{testimonial.name}</h4>
-                      <p className="font-label-sm text-on-surface-variant uppercase tracking-wider text-xs">{testimonial.role}</p>
+                      <h3 className="font-headline-md text-on-surface text-lg font-bold">{testimonial.name}</h3>
+                      <p className="font-label-sm text-on-surface-variant font-medium text-xs">{testimonial.role}</p>
                     </div>
                   </div>
                 </div>
@@ -534,8 +535,8 @@ const Home = () => {
                         )}
                         <div className="absolute inset-0 bg-gradient-to-tr from-[#00caff]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
-                      <h4 className="font-headline-md text-2xl mb-2">{faculty.name}</h4>
-                      <p className="font-label-sm text-[#00caff] uppercase tracking-widest mt-1 opacity-90 leading-relaxed">{faculty.title}</p>
+                      <h3 className="font-headline-md text-2xl mb-2">{faculty.name}</h3>
+                      <p className="font-label-sm text-[#00caff] tracking-wide mt-1 opacity-90 leading-relaxed font-semibold">{faculty.title}</p>
                     </div>
                   ))}
                 </div>
@@ -559,7 +560,7 @@ const Home = () => {
               <p className="font-body-lg text-lg md:text-xl text-on-surface-variant mb-12">
                 Join a community of hundreds of student developers. Get exclusive access to workshops, hackathons, and mentorship.
               </p>
-              <Link to="/join" className="bg-transparent border border-[#006783] text-[#006783] px-10 py-5 font-headline-md font-bold text-lg rounded-full uppercase tracking-widest hover:bg-[#006783] hover:text-white transition-colors duration-300">
+              <Link to="/join" className="bg-[#006783] text-white px-10 py-5 font-headline-md font-bold text-lg rounded-full tracking-wide hover:bg-[#004d63] transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-0.5">
                 Join the Community
               </Link>
             </div>
