@@ -428,12 +428,12 @@ const Home = () => {
                 {[
                   { icon: <Users className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: 1500, suffix: '+', label: 'Active Members' },
                   { icon: <Calendar className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: totalEvents + 48, suffix: '+', label: 'Events Hosted' },
-                  { icon: <Award className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: 12, suffix: '+', label: 'Hackathons and ideathons won by team' }
+                  { icon: <Award className="w-7 h-7 md:w-10 md:h-10 text-[#006783] mb-3 md:mb-6" />, val: 12, suffix: '+', label: 'Hackathons and Ideathons won by team' }
                 ].map((stat, i) => (
                   <div key={i} className="glass-card p-4 md:p-10 flex flex-col items-center justify-center text-center rounded-3xl">
                     {stat.icon}
                     <Counter value={stat.val} suffix={stat.suffix} />
-                    <span className="font-label-md text-on-surface-variant mt-2 md:mt-4 text-xs md:text-sm leading-tight">{stat.label}</span>
+                    <span className="font-label-md tracking-widest uppercase text-on-surface-variant mt-2 md:mt-4 text-xs md:text-sm leading-tight">{stat.label}</span>
                   </div>
                 ))}
               </div>
@@ -500,7 +500,7 @@ const Home = () => {
                     <img src={testimonial.avatar} alt={testimonial.name} className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm" />
                     <div>
                       <h3 className="font-headline-md text-on-surface text-lg font-bold">{testimonial.name}</h3>
-                      <p className="font-label-sm text-on-surface-variant font-medium text-xs">{testimonial.role}</p>
+                      <p className="font-label-sm text-on-surface-variant uppercase tracking-wider text-xs">{testimonial.role}</p>
                     </div>
                   </div>
                 </div>
@@ -536,7 +536,7 @@ const Home = () => {
                         <div className="absolute inset-0 bg-gradient-to-tr from-[#00caff]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                       <h3 className="font-headline-md text-2xl mb-2">{faculty.name}</h3>
-                      <p className="font-label-sm text-[#00caff] tracking-wide mt-1 opacity-90 leading-relaxed font-semibold">{faculty.title}</p>
+                      <p className="font-label-sm text-[#00caff] uppercase tracking-widest mt-1 opacity-90 leading-relaxed font-semibold">{faculty.title}</p>
                     </div>
                   ))}
                 </div>
@@ -560,7 +560,7 @@ const Home = () => {
               <p className="font-body-lg text-lg md:text-xl text-on-surface-variant mb-12">
                 Join a community of hundreds of student developers. Get exclusive access to workshops, hackathons, and mentorship.
               </p>
-              <Link to="/join" className="bg-[#006783] text-white px-10 py-5 font-headline-md font-bold text-lg rounded-full tracking-wide hover:bg-[#004d63] transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-0.5">
+              <Link to="/join" className="bg-[#006783] text-white px-10 py-5 font-headline-md font-bold text-lg rounded-full uppercase tracking-widest hover:bg-[#004d63] transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-0.5">
                 Join the Community
               </Link>
             </div>

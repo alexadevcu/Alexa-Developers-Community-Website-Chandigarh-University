@@ -41,8 +41,8 @@ const HallOfFame = () => {
           className="w-full h-48 md:h-72 lg:h-96 rounded-3xl overflow-hidden mb-12 shadow-md relative"
         >
           <img src={bannerImg} alt="Hall of Fame Banner" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-8 md:p-12">
-            <h2 className="font-headline-xl text-4xl md:text-5xl lg:text-6xl text-white mb-2 drop-shadow-md">Hall of Fame</h2>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex flex-col justify-end p-8 md:p-12">
+            <h1 className="font-headline-xl text-4xl md:text-5xl lg:text-6xl text-white mb-2 drop-shadow-lg font-bold">Hall of Fame</h1>
             <p className="font-body-lg text-white/90 text-lg md:text-xl max-w-2xl drop-shadow">Celebrating the exceptional achievements and representations by our community.</p>
           </div>
         </motion.div>
@@ -57,9 +57,9 @@ const HallOfFame = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               <div className="flex items-center gap-3 mb-8 border-b border-outline-variant/30 pb-4">
                 <Award className="text-[#006783] w-8 h-8" />
-                <h3 className="font-headline-md text-3xl text-on-surface">Achievements</h3>
+                <h2 className="font-headline-md text-3xl text-on-surface font-bold">Achievements</h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {hofEntries.filter(e => e.category === 'achievement').length > 0 ? (
                   hofEntries.filter(e => e.category === 'achievement').map((entry, idx) => (
                     <motion.div 
@@ -77,9 +77,9 @@ const HallOfFame = () => {
                       
                       {/* Hover Overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-6">
-                        <div className="translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                          <h4 className="font-bold text-white text-2xl leading-tight drop-shadow-md">{entry.member_name}</h4>
-                          <p className="text-[#0ea5e9] font-semibold text-sm mt-2 tracking-wide uppercase drop-shadow">{entry.event_name}</p>
+                        <div className="translate-y-4 group-hover:translate-y-0 transition-transform duration-500 min-h-[4.5rem] flex flex-col justify-end">
+                          <h4 className="font-bold text-white text-xl sm:text-2xl leading-tight drop-shadow-md line-clamp-2">{entry.member_name}</h4>
+                          <p className="text-[#0ea5e9] font-semibold text-sm mt-1 tracking-wide drop-shadow">{entry.event_name}</p>
                         </div>
                       </div>
                     </motion.div>
@@ -97,9 +97,9 @@ const HallOfFame = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
               <div className="flex items-center gap-3 mb-8 border-b border-outline-variant/30 pb-4">
                 <Quote className="text-[#0ea5e9] w-8 h-8" />
-                <h3 className="font-headline-md text-3xl text-on-surface">Representation</h3>
+                <h2 className="font-headline-md text-3xl text-on-surface font-bold">Representation</h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {hofEntries.filter(e => e.category === 'representation').length > 0 ? (
                   hofEntries.filter(e => e.category === 'representation').map((entry, idx) => (
                     <motion.div 
@@ -117,9 +117,9 @@ const HallOfFame = () => {
                       
                       {/* Hover Overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-6">
-                        <div className="translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                          <h4 className="font-bold text-white text-2xl leading-tight drop-shadow-md">{entry.member_name}</h4>
-                          <p className="text-[#0ea5e9] font-semibold text-sm mt-2 tracking-wide uppercase drop-shadow">{entry.event_name}</p>
+                        <div className="translate-y-4 group-hover:translate-y-0 transition-transform duration-500 min-h-[4.5rem] flex flex-col justify-end">
+                          <h4 className="font-bold text-white text-xl sm:text-2xl leading-tight drop-shadow-md line-clamp-2">{entry.member_name}</h4>
+                          <p className="text-[#0ea5e9] font-semibold text-sm mt-1 tracking-wide drop-shadow">{entry.event_name}</p>
                         </div>
                       </div>
                     </motion.div>

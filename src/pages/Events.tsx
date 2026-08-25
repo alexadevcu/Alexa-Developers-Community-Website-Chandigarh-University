@@ -222,13 +222,13 @@ const Events: React.FC = () => {
                       PAST HIGHLIGHT
                     </div>
                   )}
-                  <span className="text-[#0ea5e9] font-mono text-xs md:text-sm font-bold">
+                  <span className="text-[#0ea5e9] font-mono text-xs md:text-sm uppercase tracking-widest font-bold">
                     {heroEvents[heroIndex].type}
                   </span>
                 </div>
                 
                 {/* Title */}
-                <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-display font-black text-slate-900 mb-4 md:mb-6 tracking-tight leading-[0.95] drop-shadow-sm max-w-5xl">
+                <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-display font-black text-slate-900 mb-4 md:mb-6 tracking-tighter leading-[0.95] drop-shadow-sm max-w-5xl uppercase">
                   {heroEvents[heroIndex].name}
                 </h1>
                 
@@ -349,7 +349,7 @@ const Events: React.FC = () => {
             </h2>
             <button 
               onClick={() => setShowAllEvents(!showAllEvents)} 
-              className="text-[#0ea5e9] font-bold text-sm tracking-wide hover:underline whitespace-nowrap px-4"
+              className="text-[#0ea5e9] font-bold text-sm uppercase tracking-widest hover:underline whitespace-nowrap px-4"
             >
               {showAllEvents ? 'View Carousel' : 'View All'}
             </button>
