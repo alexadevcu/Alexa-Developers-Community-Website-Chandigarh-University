@@ -171,21 +171,31 @@ const MemberCard: React.FC<{ member: Member }> = ({ member }) => {
   );
 };
 
+import { getCachedData, setCachedData } from '../lib/cache';
+
 const Team: React.FC = () => {
-  const [members, setMembers] = useState<Member[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedMembers = getCachedData<Member[]>('team_members');
+  const [members, setMembers] = useState<Member[]>(() => cachedMembers || []);
+  const [isLoading, setIsLoading] = useState(() => !cachedMembers);
   const [showAllPast, setShowAllPast] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('team_members')
-        .select('*')
-        .order('order_index', { ascending: true })
-        .limit(100);
-      if (!error && data) setMembers(data);
-      setIsLoading(false);
+      try {
+        const { data, error } = await supabase
+          .from('team_members')
+          .select('*')
+          .order('order_index', { ascending: true })
+          .limit(100);
+        if (!error && data) {
+          setMembers(data);
+          setCachedData('team_members', data);
+        }
+      } catch (err) {
+        console.error("Error fetching team members:", err);
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetch();
   }, []);

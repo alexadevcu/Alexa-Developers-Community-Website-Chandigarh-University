@@ -13,19 +13,30 @@ interface HallOfFameEntry {
   order_index: number;
 }
 
+import { getCachedData, setCachedData } from '../lib/cache';
+
 const HallOfFame = () => {
-  const [hofEntries, setHofEntries] = useState<HallOfFameEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedHof = getCachedData<HallOfFameEntry[]>('hall_of_fame');
+  const [hofEntries, setHofEntries] = useState<HallOfFameEntry[]>(() => cachedHof || []);
+  const [isLoading, setIsLoading] = useState(() => !cachedHof);
 
   useEffect(() => {
     const fetchHof = async () => {
-      const { data } = await supabase
-        .from('hall_of_fame')
-        .select('*')
-        .order('order_index', { ascending: true })
-        .limit(50);
-      if (data) setHofEntries(data);
-      setIsLoading(false);
+      try {
+        const { data } = await supabase
+          .from('hall_of_fame')
+          .select('*')
+          .order('order_index', { ascending: true })
+          .limit(50);
+        if (data) {
+          setHofEntries(data);
+          setCachedData('hall_of_fame', data);
+        }
+      } catch (err) {
+        console.error("Error fetching hall of fame:", err);
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchHof();
   }, []);

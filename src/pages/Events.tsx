@@ -33,15 +33,18 @@ interface Event {
   show_external_website?: boolean;
 }
 
+import { getCachedData, setCachedData } from '../lib/cache';
+
 const Events: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [heroEvents, setHeroEvents] = useState<Event[]>([]);
+  const cachedEvents = getCachedData<{ hero: Event[]; past: Event[] }>('events_data');
+  const [heroEvents, setHeroEvents] = useState<Event[]>(() => cachedEvents?.hero || []);
   const [heroIndex, setHeroIndex] = useState(0);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
-  const [carouselEvents, setCarouselEvents] = useState<Event[]>([]);
+  const [carouselEvents, setCarouselEvents] = useState<Event[]>(() => cachedEvents?.past || []);
   const [showAllEvents, setShowAllEvents] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => !cachedEvents);
   const [isDescExpanded, setIsDescExpanded] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
 
@@ -53,7 +56,6 @@ const Events: React.FC = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        setIsLoading(true);
         const { data, error } = await supabase
           .from('events')
           .select('*')
@@ -93,24 +95,14 @@ const Events: React.FC = () => {
             
           setHeroEvents(hero);
           setCarouselEvents(past);
+          setCachedData('events_data', { hero, past });
+          setIsLoading(false);
 
           // If there's an eventId in the URL, redirect to dedicated page
           const eventId = searchParams.get('eventId');
           if (eventId) {
             navigate(`/events/${eventId}`, { replace: true });
           }
-
-          // Preload the hero image before dismissing the loader
-          if (hero.length > 0) {
-            const imgUrl = toDirectImageUrl(hero[0].poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop";
-            const img = new Image();
-            img.onload = () => setIsLoading(false);
-            img.onerror = () => setIsLoading(false);
-            img.src = imgUrl;
-          } else {
-            setIsLoading(false);
-          }
-
         } else {
           setIsLoading(false);
         }

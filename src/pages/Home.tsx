@@ -30,6 +30,8 @@ const sponsorsList = [sponsor1, sponsor2, sponsor3, sponsor4, sponsor6, sponsor7
 import { supabase } from '../lib/supabase';
 import { slugify } from '../lib/utils';
 
+import { getCachedData, setCachedData } from '../lib/cache';
+
 interface Event {
   id: string;
   name: string;
@@ -85,9 +87,8 @@ const staggerContainer: Variants = {
 };
 
 const Home = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
-  const [totalEvents, setTotalEvents] = useState(0);
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>(() => getCachedData<Event[]>('home_events') || []);
+  const [totalEvents, setTotalEvents] = useState<number>(() => getCachedData<number>('home_total_events') || 0);
   const mouseX = useMotionValue(-500);
   const mouseY = useMotionValue(-500);
   const cursorX = useSpring(mouseX, { damping: 25, stiffness: 200 });
@@ -104,85 +105,49 @@ const Home = () => {
 
   useEffect(() => {
     const fetchHomeEvents = async () => {
-      const { count } = await supabase
-        .from('events')
-        .select('*', { count: 'exact', head: true });
+      try {
+        const [countRes, upcomingRes] = await Promise.all([
+          supabase.from('events').select('*', { count: 'exact', head: true }),
+          supabase
+            .from('events')
+            .select('*')
+            .eq('is_archived', false)
+            .eq('status', 'upcoming')
+            .order('event_date', { ascending: true })
+            .limit(3)
+        ]);
 
-      setTotalEvents(count || 0);
+        const totalCount = countRes.count || 0;
+        setTotalEvents(totalCount);
+        setCachedData('home_total_events', totalCount);
 
-      const { data: upcomingData } = await supabase
-        .from('events')
-        .select('*')
-        .eq('is_archived', false)
-        .eq('status', 'upcoming')
-        .order('event_date', { ascending: true })
-        .limit(3);
+        let displayEvents = upcomingRes.data || [];
 
-      let displayEvents = upcomingData || [];
+        if (displayEvents.length < 3) {
+          const { data: pastData } = await supabase
+            .from('events')
+            .select('*')
+            .eq('is_archived', false)
+            .neq('status', 'upcoming')
+            .order('event_date', { ascending: false })
+            .limit(3 - displayEvents.length);
 
-      if (displayEvents.length < 3) {
-        const { data: pastData } = await supabase
-          .from('events')
-          .select('*')
-          .eq('is_archived', false)
-          .neq('status', 'upcoming')
-          .order('event_date', { ascending: false })
-          .limit(3 - displayEvents.length);
+          if (pastData) displayEvents = [...displayEvents, ...pastData];
+        }
 
-        if (pastData) displayEvents = [...displayEvents, ...pastData];
+        setUpcomingEvents(displayEvents);
+        setCachedData('home_events', displayEvents);
+      } catch (err) {
+        console.error("Error fetching home events:", err);
       }
-
-      setUpcomingEvents(displayEvents);
     };
 
     fetchHomeEvents();
   }, []);
 
-
-
-  // Dismiss both the HTML loader (hard refresh) and the React overlay (client-side nav)
-  const dismissLoader = () => {
-    setIsLoading(false);
-    // Also clear HTML loader if it still exists (hard refresh case)
-    const htmlLoader = document.getElementById('initial-loader');
-    if (htmlLoader) {
-      htmlLoader.classList.add('hidden');
-      setTimeout(() => htmlLoader.remove(), 500);
-    }
-  };
-
-  // Mount logic - wait for video or timeout
-  useEffect(() => {
-    // 3-second fallback: dismiss loader if video takes too long
-    const fallbackTimer = setTimeout(() => dismissLoader(), 3000);
-    return () => clearTimeout(fallbackTimer);
-  }, []);
-
   return (
     <>
-      {/* React Loading Overlay — shows on client-side navigation to home (HTML loader already removed) */}
-      {isLoading && (
-        <div
-          className="fixed inset-0 z-[100] bg-[#f7f9fb] flex flex-col items-center justify-center"
-          style={{ transition: 'opacity 0.5s ease' }}
-        >
-          <div className="relative w-48 h-48 flex items-center justify-center" style={{ transform: 'translateZ(0)' }}>
-            {/* Outer ring */}
-            <div className="animate-smooth-spin absolute w-48 h-48 rounded-full border-[3px] border-transparent border-t-[#00caff] border-r-[#006783] shadow-[0_0_30px_rgba(0,202,255,0.2)]" />
-            {/* Inner ring */}
-            <div className="animate-smooth-spin-reverse absolute w-40 h-40 rounded-full border-[2px] border-transparent border-b-[#00caff] border-l-[#006783] opacity-70" />
-            {/* Logo */}
-            <div className="relative w-28 h-28 z-10 bg-[#f7f9fb] rounded-full p-4 flex items-center justify-center">
-              <img src="/logo.png" alt="ADC" className="w-full h-full object-contain" />
-            </div>
-          </div>
-          <p className="mt-10 text-[11px] tracking-[0.3em] uppercase text-[#006783] font-sans animate-pulse">
-            Loading Ecosystem
-          </p>
-        </div>
-      )}
-
-      <div className={`w-full bg-surface relative ${isLoading ? 'h-screen overflow-hidden' : 'overflow-hidden'}`}>
+      <div className="w-full bg-surface relative overflow-hidden">
 
         {/* Mouse Follower Glow */}
         <motion.div
@@ -197,16 +162,14 @@ const Home = () => {
           {/* 2. Hero Section */}
           <section className="min-h-[80vh] flex flex-col justify-center px-6 md:px-16 lg:px-24 relative overflow-hidden pt-14 md:pt-0">
 
-
-
-            {/* Full-width Video Background */}
+            {/* Full-width Video Background with immediate fallback */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-surface">
               <video
                 autoPlay
                 loop
                 muted
                 playsInline
-                onLoadedData={() => dismissLoader()}
+                preload="auto"
                 className="w-full h-full object-cover object-[80%_center] md:object-center opacity-100 scale-[1.02]"
               >
                 <source src={landingWebm} type="video/webm" />
@@ -264,7 +227,7 @@ const Home = () => {
                 {/* We duplicate the array to ensure continuous scrolling without gaps */}
                 {[...sponsorsList, ...sponsorsList].map((imgSrc, i) => (
                   <div key={i} className="mx-8 md:mx-16 flex items-center justify-center shrink-0 hover:scale-105 transition-transform duration-300">
-                    <img src={imgSrc} alt={`Sponsor ${i + 1}`} className="h-10 md:h-14 w-auto object-contain max-w-[150px] md:max-w-[200px]" />
+                    <img src={imgSrc} alt={`Sponsor ${i + 1}`} className="h-14 sm:h-16 md:h-20 w-auto object-contain max-w-[180px] sm:max-w-[220px] md:max-w-[280px] drop-shadow-sm" />
                   </div>
                 ))}
               </div>

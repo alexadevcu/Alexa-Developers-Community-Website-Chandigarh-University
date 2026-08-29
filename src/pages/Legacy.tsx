@@ -97,10 +97,11 @@ const TIMELINE_STEPS = [
   }
 ];
 
+import { getCachedData, setCachedData } from '../lib/cache';
+
 const Legacy: React.FC = () => {
-  const [leaders, setLeaders] = useState<Leader[]>([]);
+  const [leaders, setLeaders] = useState<Leader[]>(() => getCachedData<Leader[]>('legacy_leaders') || []);
   const [selectedLeader, setSelectedLeader] = useState<Leader | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'All' | 'Founder' | 'President' | 'Vice President'>('All');
 
   useEffect(() => {
     const fetchLegacy = async () => {
@@ -132,6 +133,7 @@ const Legacy: React.FC = () => {
             linkedinUrl: item.linkedin_url || ''
           }));
           setLeaders(formatted);
+          setCachedData('legacy_leaders', formatted);
         }
       } catch (err) {
         console.error('Error fetching legacy members:', err);
@@ -141,12 +143,7 @@ const Legacy: React.FC = () => {
   }, []);
 
   const spotlightLeader = FEATURED_LEADER;
-  const remainingLeaders = leaders;
-
-  const filteredLeaders = remainingLeaders.filter(l => {
-    if (activeFilter === 'All') return true;
-    return l.role === activeFilter;
-  });
+  const filteredLeaders = leaders;
 
   return (
     <div className="relative w-full min-h-screen font-sans pb-32 selection:bg-[#0ea5e9]/20 overflow-hidden bg-[#f8fafc]">
@@ -218,7 +215,7 @@ const Legacy: React.FC = () => {
               Founded in September 2019, the Alexa Developers Community at Chandigarh University was launched to bridge classroom instruction with hands-on software engineering, voice interaction design, and cloud architecture. Over the years, it has matured into a benchmark university chapter for student innovation.
             </p>
 
-            {/* Timeline Cards Grid */}
+            {/* Timeline Steps Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {TIMELINE_STEPS.map((step, idx) => (
                 <motion.div
@@ -226,23 +223,20 @@ const Legacy: React.FC = () => {
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: idx * 0.1 }}
-                  className="group relative p-6 rounded-2xl bg-white/60 backdrop-blur-md border border-white/80 shadow-sm hover:shadow-md hover:bg-white/80 transition-all flex flex-col justify-between"
+                  transition={{ delay: idx * 0.1, duration: 0.5 }}
+                  className="bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-white/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
                 >
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-2xl font-bold font-mono text-[#0ea5e9]/40 group-hover:text-[#0ea5e9] transition-colors">
-                      {step.step}
-                    </span>
-                    <span className="px-3 py-1 rounded-full text-xs font-mono bg-slate-900 text-white font-bold">
+                  <div>
+                    <span className="text-xs font-mono font-bold text-[#0ea5e9] tracking-wider block mb-2">
                       {step.period}
                     </span>
+                    <h3 className="font-bold text-slate-900 text-lg mb-2 leading-snug">
+                      {step.heading}
+                    </h3>
+                    <p className="text-slate-500 text-xs md:text-sm font-light leading-relaxed">
+                      {step.detail}
+                    </p>
                   </div>
-                  <h3 className="font-bold text-slate-900 text-lg mb-2 leading-snug">
-                    {step.heading}
-                  </h3>
-                  <p className="text-slate-500 text-xs md:text-sm font-light leading-relaxed">
-                    {step.detail}
-                  </p>
                 </motion.div>
               ))}
             </div>
@@ -260,26 +254,10 @@ const Legacy: React.FC = () => {
                 Presidents & Vice Presidents
               </h2>
             </div>
-
-            {/* Filter Buttons */}
-            <div className="flex items-center gap-2 bg-white/60 p-1.5 rounded-full border border-white/80 shadow-sm self-start sm:self-auto">
-              {(['All', 'Founder', 'President', 'Vice President'] as const).map(filter => (
-                <button
-                  key={filter}
-                  onClick={() => setActiveFilter(filter)}
-                  className={`px-5 py-2 rounded-full text-xs font-bold transition-all ${activeFilter === filter
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                >
-                  {filter === 'All' ? 'All Roles' : `${filter}s`}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Featured Spotlight Card */}
-          {activeFilter === 'All' && spotlightLeader && (
+          {spotlightLeader && (
             <div className="w-full flex flex-col-reverse lg:flex-row bg-white/50 backdrop-blur-2xl border border-white/70 shadow-[0_8px_32px_rgba(31,38,135,0.06)] rounded-[2.5rem] overflow-hidden mb-16 hover:shadow-xl transition-all duration-500">
               <div className="w-full lg:w-3/5 p-6 md:p-12 lg:p-14 flex flex-col justify-between">
                 <div>

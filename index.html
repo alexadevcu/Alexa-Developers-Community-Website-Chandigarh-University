@@ -6,6 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="google-site-verification" content="gx5dzQz8bDkwRiZXmMcdPIAXOlXP0nED9xlTdlRexaM" />
     
+    <!-- Speed & Resource Preloading Hints -->
+    <meta http-equiv="x-dns-prefetch-control" content="on" />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <link rel="dns-prefetch" href="https://lh3.googleusercontent.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://lh3.googleusercontent.com" />
+    <link rel="preload" href="/logo.png" as="image" />
+
     <!-- Primary Meta Tags -->
     <title>Alexa Developers Community - Chandigarh University (ADC CU)</title>
     <meta name="title" content="Alexa Developers Community - Chandigarh University (ADC CU)" />
@@ -35,7 +45,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        transition: opacity 0.5s ease;
+        transition: opacity 0.25s ease;
       }
       #initial-loader.hidden {
         opacity: 0;
@@ -43,49 +53,48 @@
       }
       .loader-ring-wrap {
         position: relative;
-        width: 192px;
-        height: 192px;
+        width: 160px;
+        height: 160px;
         display: flex;
         align-items: center;
         justify-content: center;
-        /* Force this whole group onto its own GPU layer */
         transform: translateZ(0);
         will-change: transform;
       }
       .loader-ring-outer {
         position: absolute;
-        width: 192px;
-        height: 192px;
+        width: 160px;
+        height: 160px;
         border-radius: 50%;
         border: 3px solid transparent;
         border-top-color: #00caff;
         border-right-color: #006783;
         box-shadow: 0 0 30px rgba(0, 202, 255, 0.2);
         transform: translateZ(0);
-        animation: spin-cw 1.5s linear infinite;
+        animation: spin-cw 1.2s linear infinite;
       }
       .loader-ring-inner {
         position: absolute;
-        width: 160px;
-        height: 160px;
+        width: 130px;
+        height: 130px;
         border-radius: 50%;
         border: 2px solid transparent;
         border-bottom-color: #00caff;
         border-left-color: #006783;
         opacity: 0.7;
         transform: translateZ(0);
-        animation: spin-ccw 2s linear infinite;
+        animation: spin-ccw 1.5s linear infinite;
       }
       .loader-logo {
         position: relative;
-        width: 112px;
-        height: 112px;
+        width: 90px;
+        height: 90px;
         border-radius: 50%;
         background: #f7f9fb;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 16px;
+        padding: 12px;
         z-index: 1;
       }
       .loader-logo img {
@@ -94,13 +103,13 @@
         object-fit: contain;
       }
       .loader-text {
-        margin-top: 40px;
+        margin-top: 30px;
         font-family: sans-serif;
         font-size: 11px;
         letter-spacing: 0.3em;
         text-transform: uppercase;
         color: #006783;
-        animation: pulse-text 1.5s ease-in-out infinite;
+        animation: pulse-text 1.2s ease-in-out infinite;
       }
       @keyframes spin-cw {
         0%   { transform: translateZ(0) rotate(0deg); }
@@ -130,23 +139,29 @@
         <div class="loader-ring-outer"></div>
         <div class="loader-ring-inner"></div>
         <div class="loader-logo">
-          <img src="/logo.png" alt="ADC Logo" />
+          <img src="/logo.png" alt="ADC Logo" width="90" height="90" />
         </div>
       </div>
     </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      window.addEventListener('load', function() {
-        setTimeout(function() {
+      (function() {
+        function hideLoader() {
           var loader = document.getElementById('initial-loader');
           if (loader) {
             loader.classList.add('hidden');
-            setTimeout(function() { if (loader && loader.parentNode) loader.parentNode.removeChild(loader); }, 500);
+            setTimeout(function() {
+              if (loader && loader.parentNode) loader.parentNode.removeChild(loader);
+            }, 250);
           }
-        }, 1500);
-      });
+        }
+        if (document.readyState === 'interactive' || document.readyState === 'complete') {
+          hideLoader();
+        } else {
+          document.addEventListener('DOMContentLoaded', hideLoader);
+        }
+      })();
     </script>
   </body>
 </html>
-
