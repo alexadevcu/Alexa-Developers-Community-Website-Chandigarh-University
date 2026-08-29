@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, ChevronRight, ChevronLeft, Play, Info, Sparkles, ArrowRight, ExternalLink, Rocket } from 'lucide-react';
+import { Calendar, ChevronRight, ChevronLeft, Play, Info, Sparkles, ArrowRight, Rocket } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { slugify } from '../lib/utils';
 
