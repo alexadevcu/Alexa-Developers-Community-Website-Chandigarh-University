@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, ChevronRight, ChevronLeft, Play, Info } from 'lucide-react';
+import { Calendar, ChevronRight, ChevronLeft, Play, Info, Sparkles, ArrowRight, ExternalLink, Rocket } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { slugify } from '../lib/utils';
 
@@ -38,8 +38,9 @@ import { getCachedData, setCachedData } from '../lib/cache';
 const Events: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const cachedEvents = getCachedData<{ hero: Event[]; past: Event[] }>('events_data');
+  const cachedEvents = getCachedData<{ hero: Event[]; upcoming: Event[]; past: Event[] }>('events_data');
   const [heroEvents, setHeroEvents] = useState<Event[]>(() => cachedEvents?.hero || []);
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>(() => cachedEvents?.upcoming || []);
   const [heroIndex, setHeroIndex] = useState(0);
   const [isFirstLoad, setIsFirstLoad] = useState(true);
   const [carouselEvents, setCarouselEvents] = useState<Event[]>(() => cachedEvents?.past || []);
@@ -94,8 +95,9 @@ const Events: React.FC = () => {
           }
             
           setHeroEvents(hero);
+          setUpcomingEvents(allUpcoming);
           setCarouselEvents(past);
-          setCachedData('events_data', { hero, past });
+          setCachedData('events_data', { hero, upcoming: allUpcoming, past });
           setIsLoading(false);
 
           // If there's an eventId in the URL, redirect to dedicated page
@@ -332,108 +334,278 @@ const Events: React.FC = () => {
         </div>
       )}
 
-      {/* --- EVENT ARCHIVES CAROUSEL & GRID --- */}
-      {carouselEvents.length > 0 && (
-        <div className="w-full mt-10 md:-mt-24 relative z-20 px-4 md:px-12 lg:px-16">
-          <div className="flex justify-between items-center max-w-7xl mx-auto mb-6 px-2 md:px-4">
-            <h2 className="font-display text-2xl md:text-3xl font-bold text-slate-900 tracking-tight drop-shadow-sm">
-              Event Archives & Highlights
+      {/* ── 2. CURRENT & UPCOMING EVENTS SECTION ── */}
+      <section className="max-w-7xl mx-auto px-4 md:px-12 lg:px-16 pt-16 md:pt-24 pb-12">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 pb-4 border-b border-slate-200/80 gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#0ea5e9]/10 text-[#0ea5e9] rounded-full text-xs font-mono font-bold uppercase tracking-widest mb-3">
+              <span className="w-2 h-2 rounded-full bg-[#0ea5e9] animate-pulse" />
+              Live & Scheduled
+            </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold text-slate-900 tracking-tight">
+              Current & Upcoming Events
             </h2>
-            <button 
-              onClick={() => setShowAllEvents(!showAllEvents)} 
-              className="text-[#0ea5e9] font-bold text-sm uppercase tracking-widest hover:underline whitespace-nowrap px-4"
+          </div>
+          <p className="text-slate-500 font-sans text-sm md:text-base max-w-md">
+            Register for live hackathons, ongoing ideathons, and scheduled technical bootcamps.
+          </p>
+        </div>
+
+        {upcomingEvents.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {upcomingEvents.map((event) => (
+              <div
+                key={event.id}
+                className="bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group h-full justify-between"
+              >
+                {/* Event Poster */}
+                <div className="relative aspect-[16/10] overflow-hidden bg-slate-900 shrink-0">
+                  <img
+                    src={toDirectImageUrl(event.poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"}
+                    alt={event.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                    <span className="px-3 py-1 bg-red-600 text-white rounded-full text-[11px] font-bold uppercase tracking-wider shadow-sm flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                      Live / Upcoming
+                    </span>
+                    <span className="px-3 py-1 bg-slate-900/80 backdrop-blur-md text-white rounded-full text-[11px] font-semibold uppercase tracking-wider">
+                      {event.type}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Event Details */}
+                <div className="p-6 md:p-8 flex flex-col flex-grow justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 text-slate-500 font-mono text-xs uppercase tracking-wider mb-3">
+                      <Calendar size={14} className="text-[#0ea5e9]" />
+                      <span className="font-semibold">{formatDate(event.event_date, event.end_date)}</span>
+                    </div>
+
+                    <h3 className="font-display font-bold text-xl md:text-2xl text-slate-900 mb-3 leading-snug group-hover:text-[#0ea5e9] transition-colors min-h-[3.25rem] line-clamp-2">
+                      {event.name}
+                    </h3>
+
+                    <p className="text-slate-600 font-sans text-sm leading-relaxed line-clamp-3 mb-6">
+                      {event.description}
+                    </p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 mt-auto">
+                    {event.is_registration_open !== false && event.registration_link ? (
+                      <a
+                        href={event.registration_link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-5 py-2.5 bg-[#0ea5e9] text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-[#0284c7] transition-all flex items-center gap-2 shadow-sm"
+                      >
+                        <Play size={14} className="fill-white" /> Register Now
+                      </a>
+                    ) : (
+                      <span className="text-xs font-semibold text-slate-400">
+                        Registration Closed
+                      </span>
+                    )}
+
+                    <Link
+                      to={`/events/${slugify(event.name)}`}
+                      className="px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-slate-100 transition-all flex items-center gap-1.5 shrink-0"
+                    >
+                      Details <ArrowRight size={14} />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white/80 backdrop-blur-md rounded-3xl border border-slate-200/80 p-8 md:p-12 text-center max-w-2xl mx-auto shadow-sm">
+            <div className="w-14 h-14 rounded-2xl bg-[#0ea5e9]/10 text-[#0ea5e9] flex items-center justify-center mx-auto mb-4">
+              <Rocket size={28} />
+            </div>
+            <h3 className="font-display font-bold text-2xl text-slate-900 mb-2">
+              Next Big Thing Loading...
+            </h3>
+            <p className="text-slate-600 font-sans text-sm md:text-base leading-relaxed mb-6">
+              We are currently designing and curating our upcoming season of hackathons, ideathons, and technical bootcamps. Join our WhatsApp channel to be the first to know when registrations open!
+            </p>
+            <a
+              href="https://whatsapp.com/channel/0029Vb8eGmx7YScy56dDu93n"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[#0ea5e9] text-white rounded-full font-bold text-xs uppercase tracking-wider hover:bg-[#0284c7] transition-all shadow-md"
             >
-              {showAllEvents ? 'View Carousel' : 'View All'}
-            </button>
+              Join WhatsApp Channel <ArrowRight size={14} />
+            </a>
+          </div>
+        )}
+      </section>
+
+      {/* --- 3. EVENT ARCHIVES CAROUSEL & GRID --- */}
+      {carouselEvents.length > 0 && (
+        <section className="w-full mt-10 md:mt-16 pb-20 relative z-20 px-4 md:px-12 lg:px-16 max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 pb-4 border-b border-slate-200/80 gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-200/70 text-slate-700 rounded-full text-xs font-mono font-bold uppercase tracking-widest mb-3">
+                <Sparkles size={14} className="text-[#0ea5e9]" />
+                ADC Heritage & Milestones
+              </div>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold text-slate-900 tracking-tight">
+                Event Archives & Highlights
+              </h2>
+            </div>
+            <div className="flex items-center gap-4 self-start md:self-auto">
+              {!showAllEvents && (
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => scrollCarousel('left')}
+                    className="w-10 h-10 rounded-full bg-white border border-slate-200 shadow-sm text-slate-700 hover:text-[#0ea5e9] hover:border-[#0ea5e9] flex items-center justify-center transition-all hover:scale-105"
+                    aria-label="Scroll left"
+                  >
+                    <ChevronLeft size={20} strokeWidth={2.5} />
+                  </button>
+                  <button 
+                    onClick={() => scrollCarousel('right')}
+                    className="w-10 h-10 rounded-full bg-white border border-slate-200 shadow-sm text-slate-700 hover:text-[#0ea5e9] hover:border-[#0ea5e9] flex items-center justify-center transition-all hover:scale-105"
+                    aria-label="Scroll right"
+                  >
+                    <ChevronRight size={20} strokeWidth={2.5} />
+                  </button>
+                </div>
+              )}
+              <button 
+                onClick={() => setShowAllEvents(!showAllEvents)} 
+                className="text-[#0ea5e9] font-bold text-sm uppercase tracking-widest hover:underline whitespace-nowrap pl-2"
+              >
+                {showAllEvents ? 'View Carousel' : 'View All'}
+              </button>
+            </div>
           </div>
           
           {showAllEvents ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-4 pb-16 px-2 md:px-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {carouselEvents.map((event) => (
-                <Link 
+                <div 
                   key={event.id}
-                  to={`/events/${slugify(event.name)}`}
-                  className="h-[200px] md:h-[240px] relative rounded-xl overflow-hidden cursor-pointer border border-slate-200 bg-white group/card transition-all duration-500 hover:scale-105 hover:z-30 hover:shadow-xl shadow-sm block"
+                  className="bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group h-full justify-between"
                 >
-                  <img 
-                    src={toDirectImageUrl(event.poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"} 
-                    alt={event.name} 
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/70 to-transparent" />
-                  <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-5">
-                    <span className="text-[#0ea5e9] font-bold text-xs uppercase tracking-wider mb-1 drop-shadow-sm">
-                      {event.type}
-                    </span>
-                    <h3 className="font-display text-base md:text-lg text-white font-bold leading-tight mb-2 drop-shadow-md">
-                      {event.name}
-                    </h3>
-                    <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-bold font-mono">
-                      <span className="border border-white/50 text-white/90 px-1 rounded">ADC</span>
-                      <span className="text-white/80">{new Date(event.event_date).getFullYear()}</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="relative group/slider">
-              
-              {/* Scroll Left Button */}
-              <button 
-                onClick={() => scrollCarousel('left')}
-                className="absolute left-2 top-1/2 -translate-y-1/2 z-40 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white border border-slate-200 shadow-xl text-slate-800 hover:text-[#0ea5e9] flex items-center justify-center transition-all hover:scale-110"
-                aria-label="Scroll left"
-              >
-                <ChevronLeft size={24} strokeWidth={2.5} />
-              </button>
-  
-              {/* Scroll Area */}
-              <div 
-                ref={carouselRef}
-                className="flex gap-3 md:gap-4 overflow-x-auto pb-16 pt-6 px-2 md:px-4 snap-x snap-mandatory hide-scrollbar style-scrollbar"
-              >
-                {carouselEvents.map((event) => (
-                  <Link 
-                    key={event.id}
-                    to={`/events/${slugify(event.name)}`}
-                    className="min-w-[260px] md:min-w-[320px] lg:min-w-[380px] h-[146px] md:h-[180px] lg:h-[214px] relative rounded-xl overflow-hidden snap-start cursor-pointer border border-slate-200 bg-white group/card transition-all duration-500 hover:scale-105 hover:z-30 hover:shadow-xl shadow-sm shrink-0 block"
-                  >
-                    {/* Thumbnail Image */}
+                  {/* Poster Thumbnail */}
+                  <div className="relative aspect-[16/10] overflow-hidden bg-slate-900 shrink-0">
                     <img 
                       src={toDirectImageUrl(event.poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"} 
                       alt={event.name} 
-                      className="absolute inset-0 w-full h-full object-cover"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    
-                    {/* Dark gradient vignette */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/70 to-transparent" />
-                    
-                    {/* Content */}
-                    <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-5">
-                      <span className="text-[#0ea5e9] font-bold text-xs uppercase tracking-wider mb-1 drop-shadow-sm">
+                    <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                      <span className="px-3 py-1 bg-slate-900/80 backdrop-blur-md text-white rounded-full text-[11px] font-semibold uppercase tracking-wider">
                         {event.type}
                       </span>
-                      <h3 className="font-display text-base md:text-lg text-white font-bold leading-tight mb-2 drop-shadow-md">
+                      <span className="px-2.5 py-1 bg-white/90 backdrop-blur-md text-slate-800 rounded-full text-[10px] font-bold font-mono">
+                        {new Date(event.event_date).getFullYear()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Card Content */}
+                  <div className="p-6 md:p-8 flex flex-col flex-grow justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 text-slate-500 font-mono text-xs uppercase tracking-wider mb-3">
+                        <Calendar size={14} className="text-[#0ea5e9]" />
+                        <span className="font-semibold">{formatDate(event.event_date, event.end_date)}</span>
+                      </div>
+
+                      <h3 className="font-display font-bold text-xl md:text-2xl text-slate-900 mb-3 leading-snug group-hover:text-[#0ea5e9] transition-colors min-h-[3.25rem] line-clamp-2">
                         {event.name}
                       </h3>
-                      <div className="flex items-center gap-3 text-[9px] md:text-[10px] font-bold font-mono">
-                        <span className="border border-white/50 text-white/90 px-1 rounded">ADC</span>
-                        <span className="text-white/80">{new Date(event.event_date).getFullYear()}</span>
+
+                      <p className="text-slate-600 font-sans text-sm leading-relaxed line-clamp-3 mb-6">
+                        {event.description}
+                      </p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 mt-auto">
+                      <span className="text-xs font-semibold text-slate-400">
+                        Past Event
+                      </span>
+
+                      <Link 
+                        to={`/events/${slugify(event.name)}`}
+                        className="px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-slate-100 transition-all flex items-center gap-1.5 shrink-0"
+                      >
+                        Explore Highlights <ArrowRight size={14} />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="relative">
+              {/* Scroll Area */}
+              <div 
+                ref={carouselRef}
+                className="flex gap-6 overflow-x-auto pb-10 pt-2 px-1 snap-x snap-mandatory hide-scrollbar style-scrollbar"
+              >
+                {carouselEvents.map((event) => (
+                  <div 
+                    key={event.id}
+                    className="w-[300px] sm:w-[350px] md:w-[380px] bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group snap-start shrink-0 justify-between"
+                  >
+                    {/* Poster Thumbnail */}
+                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-900 shrink-0">
+                      <img 
+                        src={toDirectImageUrl(event.poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"} 
+                        alt={event.name} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                        <span className="px-3 py-1 bg-slate-900/80 backdrop-blur-md text-white rounded-full text-[11px] font-semibold uppercase tracking-wider">
+                          {event.type}
+                        </span>
+                        <span className="px-2.5 py-1 bg-white/90 backdrop-blur-md text-slate-800 rounded-full text-[10px] font-bold font-mono">
+                          {new Date(event.event_date).getFullYear()}
+                        </span>
                       </div>
                     </div>
-                  </Link>
+
+                    {/* Card Content */}
+                    <div className="p-6 md:p-8 flex flex-col flex-grow justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 text-slate-500 font-mono text-xs uppercase tracking-wider mb-3">
+                          <Calendar size={14} className="text-[#0ea5e9]" />
+                          <span className="font-semibold">{formatDate(event.event_date, event.end_date)}</span>
+                        </div>
+
+                        <h3 className="font-display font-bold text-xl md:text-2xl text-slate-900 mb-3 leading-snug group-hover:text-[#0ea5e9] transition-colors line-clamp-2 min-h-[3.25rem]">
+                          {event.name}
+                        </h3>
+
+                        <p className="text-slate-600 font-sans text-sm leading-relaxed line-clamp-3 mb-6">
+                          {event.description}
+                        </p>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 mt-auto">
+                        <span className="text-xs font-semibold text-slate-400">
+                          Past Event
+                        </span>
+
+                        <Link 
+                          to={`/events/${slugify(event.name)}`}
+                          className="px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-slate-100 transition-all flex items-center gap-1.5 shrink-0"
+                        >
+                          Explore Highlights <ArrowRight size={14} />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
-  
-              {/* Scroll Right Button */}
-              <button 
-                onClick={() => scrollCarousel('right')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 z-40 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white border border-slate-200 shadow-xl text-slate-800 hover:text-[#0ea5e9] flex items-center justify-center transition-all hover:scale-110"
-                aria-label="Scroll right"
-              >
-                <ChevronRight size={24} strokeWidth={2.5} />
-              </button>
   
               {/* Hide scrollbar completely but allow scrolling */}
               <style>{`
@@ -442,7 +614,7 @@ const Events: React.FC = () => {
               `}</style>
             </div>
           )}
-        </div>
+        </section>
       )}
 
     </div>
