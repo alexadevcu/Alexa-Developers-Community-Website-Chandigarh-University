@@ -62,7 +62,7 @@ function App() {
           <Footer />
         </div>
       </Router>
-      <Analytics />
+      {import.meta.env.PROD && <Analytics />}
     </ErrorBoundary>
   );
 }

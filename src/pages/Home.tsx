@@ -26,7 +26,25 @@ import devanshImg from '../assets/Homepage/Review/Devansh Chopra.jpeg';
 import gurmeetImg from '../assets/Homepage/Review/Gurmeet Kaur.jpeg';
 import samarthImg from '../assets/Homepage/Review/Samarth.png';
 
-const sponsorsList = [sponsor1, sponsor2, sponsor3, sponsor4, sponsor6, sponsor7, sponsor8, sponsor9];
+interface SponsorItem {
+  id?: string;
+  name: string;
+  logo_url: string;
+  website_url?: string | null;
+  order_index?: number;
+}
+
+const defaultSponsorsList: SponsorItem[] = [
+  { name: 'Sponsor 1', logo_url: sponsor1 },
+  { name: 'Sponsor 2', logo_url: sponsor2 },
+  { name: 'Sponsor 3', logo_url: sponsor3 },
+  { name: 'GeeksforGeeks', logo_url: sponsor4 },
+  { name: 'Sponsor 5', logo_url: sponsor6 },
+  { name: 'Event Eye', logo_url: sponsor7 },
+  { name: 'Growbinar', logo_url: sponsor8 },
+  { name: 'Zomato', logo_url: sponsor9 }
+];
+
 import { supabase } from '../lib/supabase';
 import { slugify } from '../lib/utils';
 
@@ -89,6 +107,7 @@ const staggerContainer: Variants = {
 const Home = () => {
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>(() => getCachedData<Event[]>('home_events') || []);
   const [totalEvents, setTotalEvents] = useState<number>(() => getCachedData<number>('home_total_events') || 0);
+  const [sponsors, setSponsors] = useState<SponsorItem[]>(() => getCachedData<SponsorItem[]>('home_sponsors') || defaultSponsorsList);
   const mouseX = useMotionValue(-500);
   const mouseY = useMotionValue(-500);
   const cursorX = useSpring(mouseX, { damping: 25, stiffness: 200 });
@@ -104,9 +123,9 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
-    const fetchHomeEvents = async () => {
+    const fetchHomeData = async () => {
       try {
-        const [countRes, upcomingRes] = await Promise.all([
+        const [countRes, upcomingRes, sponsorsRes] = await Promise.all([
           supabase.from('events').select('*', { count: 'exact', head: true }),
           supabase
             .from('events')
@@ -114,7 +133,11 @@ const Home = () => {
             .eq('is_archived', false)
             .eq('status', 'upcoming')
             .order('event_date', { ascending: true })
-            .limit(3)
+            .limit(3),
+          supabase
+            .from('sponsors')
+            .select('*')
+            .order('order_index', { ascending: true })
         ]);
 
         const totalCount = countRes.count || 0;
@@ -137,12 +160,17 @@ const Home = () => {
 
         setUpcomingEvents(displayEvents);
         setCachedData('home_events', displayEvents);
+
+        if (sponsorsRes.data && sponsorsRes.data.length > 0) {
+          setSponsors(sponsorsRes.data);
+          setCachedData('home_sponsors', sponsorsRes.data);
+        }
       } catch (err) {
-        console.error("Error fetching home events:", err);
+        console.error("Error fetching home data:", err);
       }
     };
 
-    fetchHomeEvents();
+    fetchHomeData();
   }, []);
 
   return (
@@ -162,7 +190,7 @@ const Home = () => {
           {/* 2. Hero Section */}
           <section className="min-h-[80vh] flex flex-col justify-center px-6 md:px-16 lg:px-24 relative overflow-hidden pt-14 md:pt-0">
 
-            {/* Full-width Video Background with immediate fallback */}
+            {/* Full-width Video Background */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-surface">
               <video
                 autoPlay
@@ -172,6 +200,7 @@ const Home = () => {
                 preload="auto"
                 className="w-full h-full object-cover object-[80%_center] md:object-center opacity-100 scale-[1.02]"
               >
+                <source src="/Landing.webm" type="video/webm" />
                 <source src={landingWebm} type="video/webm" />
               </video>
             </div>
@@ -225,11 +254,34 @@ const Home = () => {
 
               <div className="flex w-max animate-[marquee_20s_linear_infinite] transform-gpu items-center" style={{ willChange: 'transform' }}>
                 {/* We duplicate the array to ensure continuous scrolling without gaps */}
-                {[...sponsorsList, ...sponsorsList].map((imgSrc, i) => (
-                  <div key={i} className="mx-8 md:mx-16 flex items-center justify-center shrink-0 hover:scale-105 transition-transform duration-300">
-                    <img src={imgSrc} alt={`Sponsor ${i + 1}`} className="h-14 sm:h-16 md:h-20 w-auto object-contain max-w-[180px] sm:max-w-[220px] md:max-w-[280px] drop-shadow-sm" />
-                  </div>
-                ))}
+                {[...sponsors, ...sponsors].map((sponsor, i) => {
+                  const imgSrc = toDirectImageUrl(sponsor.logo_url) || sponsor.logo_url;
+                  const imgElement = (
+                    <img 
+                      src={imgSrc} 
+                      alt={sponsor.name || `Sponsor ${i + 1}`} 
+                      className="h-14 sm:h-16 md:h-20 w-auto object-contain max-w-[180px] sm:max-w-[220px] md:max-w-[280px] drop-shadow-sm" 
+                    />
+                  );
+
+                  return (
+                    <div key={i} className="mx-8 md:mx-16 flex items-center justify-center shrink-0 hover:scale-105 transition-transform duration-300">
+                      {sponsor.website_url ? (
+                        <a 
+                          href={sponsor.website_url} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          title={sponsor.name}
+                          className="flex items-center justify-center"
+                        >
+                          {imgElement}
+                        </a>
+                      ) : (
+                        imgElement
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </section>
@@ -304,31 +356,51 @@ const Home = () => {
                 </Link>
               </div>
 
-              {/* Mobile: horizontal scroll */}
-              <div className="md:hidden flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {/* Mobile: Smooth horizontal swipeable card slider with next card peek */}
+              <div className="md:hidden flex gap-4 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-6 scroll-smooth hide-scrollbar">
                 {upcomingEvents.length > 0 ? upcomingEvents.map((event) => {
                   const date = new Date(event.event_date);
                   const month = date.toLocaleDateString('en-US', { month: 'short' });
                   const day = date.getDate();
                   const year = date.getFullYear();
+                  const imgUrl = toDirectImageUrl(event.poster_url);
+
                   return (
-                    <Link key={event.id} to={`/events/${slugify(event.name)}`} className="min-w-[75vw] snap-start glass-card rounded-3xl overflow-hidden group cursor-pointer flex flex-col shrink-0">
-                      <div className="h-44 bg-surface-variant relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
-                        <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-sm ${event.status === 'upcoming' ? 'bg-surface' : 'bg-surface-dim text-on-surface-variant'}`}>
+                    <Link 
+                      key={event.id} 
+                      to={`/events/${slugify(event.name)}`} 
+                      className="w-[82vw] sm:w-[320px] max-w-[340px] snap-start glass-card rounded-3xl overflow-hidden group cursor-pointer flex flex-col shrink-0 bg-white/80 border border-outline-variant/30 shadow-md hover:shadow-xl transition-all duration-300 justify-between"
+                    >
+                      <div className="relative aspect-[16/10] bg-slate-900 overflow-hidden shrink-0">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent z-10" />
+                        <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-sm ${
+                          event.status === 'upcoming' 
+                            ? 'bg-red-600 text-white' 
+                            : 'bg-slate-900/80 backdrop-blur-md text-white'
+                        }`}>
                           {event.status === 'upcoming' ? 'Upcoming' : 'Completed'}
                         </div>
-                        {event.poster_url ? (
-                          <img src={toDirectImageUrl(event.poster_url)!} alt={event.name} className="w-full h-full object-cover transition-transform duration-700" />
+                        {imgUrl ? (
+                          <img 
+                            src={imgUrl} 
+                            alt={event.name} 
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                          />
                         ) : (
-                          <div className="w-full h-full bg-surface-dim flex items-center justify-center">
-                            <Calendar size={36} className="text-outline/30" />
+                          <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                            <Calendar size={40} className="text-slate-400" />
                           </div>
                         )}
                       </div>
-                      <div className="p-5 flex-grow flex flex-col">
-                        <p className="text-[#006783] font-label-sm uppercase tracking-widest mb-2 text-xs">{month} {day}, {year}</p>
-                        <h3 className="font-headline-md text-on-surface mb-3 text-lg leading-tight">{event.name}</h3>
+                      <div className="p-5 flex-grow flex flex-col justify-between">
+                        <div>
+                          <p className="text-[#006783] font-label-sm uppercase tracking-widest mb-1.5 text-xs font-semibold">
+                            {month} {day}, {year}
+                          </p>
+                          <h3 className="font-headline-md text-on-surface mb-3 text-lg font-bold leading-tight group-hover:text-[#006783] transition-colors line-clamp-2 min-h-[2.75rem]">
+                            {event.name}
+                          </h3>
+                        </div>
                         <div className="mt-auto inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#006783]/10 text-[#006783] font-bold text-xs group-hover:bg-[#006783] group-hover:text-white transition-all w-fit">
                           View Details <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                         </div>
@@ -341,30 +413,50 @@ const Home = () => {
               </div>
 
               {/* Desktop: 3-column grid */}
-              <div className="hidden md:grid grid-cols-3 gap-8">
+              <div className="hidden md:grid md:grid-cols-3 gap-8">
                 {upcomingEvents.length > 0 ? upcomingEvents.map((event) => {
                   const date = new Date(event.event_date);
                   const month = date.toLocaleDateString('en-US', { month: 'short' });
                   const day = date.getDate();
                   const year = date.getFullYear();
+                  const imgUrl = toDirectImageUrl(event.poster_url);
+
                   return (
-                    <Link key={event.id} to={`/events/${slugify(event.name)}`} className="glass-card rounded-3xl overflow-hidden group cursor-pointer flex flex-col h-full">
-                      <div className="h-56 bg-surface-variant relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
-                        <div className={`absolute top-4 left-4 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-sm ${event.status === 'upcoming' ? 'bg-surface' : 'bg-surface-dim text-on-surface-variant'}`}>
+                    <Link 
+                      key={event.id} 
+                      to={`/events/${slugify(event.name)}`} 
+                      className="glass-card rounded-3xl overflow-hidden group cursor-pointer flex flex-col h-full bg-white/70 border border-outline-variant/30 shadow-md hover:shadow-xl transition-all duration-300 justify-between"
+                    >
+                      <div className="relative aspect-[16/10] bg-slate-900 overflow-hidden shrink-0">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent z-10" />
+                        <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-sm ${
+                          event.status === 'upcoming' 
+                            ? 'bg-red-600 text-white' 
+                            : 'bg-slate-900/80 backdrop-blur-md text-white'
+                        }`}>
                           {event.status === 'upcoming' ? 'Upcoming' : 'Completed'}
                         </div>
-                        {event.poster_url ? (
-                          <img src={toDirectImageUrl(event.poster_url)!} alt={event.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                        {imgUrl ? (
+                          <img 
+                            src={imgUrl} 
+                            alt={event.name} 
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                          />
                         ) : (
-                          <div className="w-full h-full bg-surface-dim transition-transform duration-700 group-hover:scale-105 flex items-center justify-center">
-                            <Calendar size={48} className="text-outline/30" />
+                          <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                            <Calendar size={40} className="text-slate-400" />
                           </div>
                         )}
                       </div>
-                      <div className="p-8 flex-grow flex flex-col">
-                        <p className="text-[#006783] font-label-sm uppercase tracking-widest mb-3">{month} {day}, {year}</p>
-                        <h3 className="font-headline-md text-on-surface mb-4 text-2xl leading-tight group-hover:text-[#006783] transition-colors">{event.name}</h3>
+                      <div className="p-6 md:p-8 flex-grow flex flex-col justify-between">
+                        <div>
+                          <p className="text-[#006783] font-label-sm uppercase tracking-widest mb-2 text-xs md:text-sm font-semibold">
+                            {month} {day}, {year}
+                          </p>
+                          <h3 className="font-headline-md text-on-surface mb-4 text-xl md:text-2xl font-bold leading-tight group-hover:text-[#006783] transition-colors line-clamp-2 min-h-[3rem]">
+                            {event.name}
+                          </h3>
+                        </div>
                         <div className="mt-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#006783]/10 text-[#006783] font-bold text-xs md:text-sm group-hover:bg-[#006783] group-hover:text-white transition-all w-fit">
                           View Details <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </div>

@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
 import {
   Plus, Trash2, Image as ImageIcon, Calendar, Edit3, X, CheckCircle2,
-  Activity, LayoutDashboard, Clock, LogOut, Users, Link as LinkIcon, UserCircle, Archive, Pin, History
+  Activity, LayoutDashboard, Clock, LogOut, Users, Link as LinkIcon, UserCircle, Archive, Pin, History,
+  Award, Globe
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -59,6 +60,15 @@ interface LegacyMember {
   created_at?: string;
 }
 
+interface Sponsor {
+  id: string;
+  name: string;
+  logo_url: string;
+  website_url?: string | null;
+  order_index: number;
+  created_at?: string;
+}
+
 // ─── Drive link → embed URL ──────────────────────────────────────────────────
 const toDirectImageUrl = (url: string | null): string | null => {
   if (!url) return null;
@@ -105,7 +115,7 @@ const MemberAvatar: React.FC<{ url: string | null; name: string; size?: string }
 // ─────────────────────────────────────────────────────────────────────────────
 const Admin: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'events' | 'team' | 'hall_of_fame' | 'legacy'>('events');
+  const [activeTab, setActiveTab] = useState<'events' | 'team' | 'legacy' | 'hall_of_fame' | 'sponsors'>('events');
 
   // ── Auth ──
   const handleLogout = async () => {
@@ -608,6 +618,124 @@ const Admin: React.FC = () => {
   }, [legacyMembers, legacySearchTerm, legacyRoleFilter]);
 
   // ══════════════════════════════════════════════════════════════════════
+  //  SPONSORS STATE & LOGIC
+  // ══════════════════════════════════════════════════════════════════════
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [sponsorsLoading, setSponsorsLoading] = useState(true);
+  const [sponsorsSearchTerm, setSponsorsSearchTerm] = useState('');
+  const [sponsorModalOpen, setSponsorModalOpen] = useState(false);
+  const [editingSponsorId, setEditingSponsorId] = useState<string | null>(null);
+  const [sponsorForm, setSponsorForm] = useState<Partial<Sponsor>>({ order_index: 0 });
+  const [sponsorFile, setSponsorFile] = useState<File | null>(null);
+  const [sponsorLogoPreview, setSponsorLogoPreview] = useState<string | null>(null);
+  const [isSponsorSaving, setIsSponsorSaving] = useState(false);
+
+  useEffect(() => { fetchSponsors(); }, []);
+
+  const fetchSponsors = async () => {
+    setSponsorsLoading(true);
+    const { data, error } = await supabase.from('sponsors').select('*').order('order_index', { ascending: true });
+    if (!error && data) setSponsors(data);
+    setSponsorsLoading(false);
+  };
+
+  const resetSponsorForm = () => {
+    setSponsorForm({ name: '', logo_url: '', website_url: '', order_index: sponsors.length });
+    setSponsorFile(null);
+    setSponsorLogoPreview(null);
+    setEditingSponsorId(null);
+  };
+
+  const handleSponsorEdit = (sponsor: Sponsor) => {
+    setSponsorForm({ ...sponsor });
+    setSponsorLogoPreview(toDirectImageUrl(sponsor.logo_url) || sponsor.logo_url);
+    setEditingSponsorId(sponsor.id);
+    setSponsorModalOpen(true);
+  };
+
+  const handleSponsorDelete = async (id: string) => {
+    if (!window.confirm(`Delete "${id}" sponsor? Cannot be undone.`)) return;
+    const { error } = await supabase.from('sponsors').delete().eq('id', id);
+    if (!error) {
+      setSponsors(prev => prev.filter(s => s.id !== id));
+      toast.success('Sponsor deleted successfully');
+    } else {
+      toast.error('Error: ' + error.message);
+    }
+  };
+
+  const uploadSponsorLogo = async (file: File): Promise<string> => {
+    const ext = file.name.split('.').pop();
+    const fileName = `sponsor_${Math.random().toString(36).substring(2)}_${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('sponsors').upload(fileName, file);
+    if (error) throw error;
+    return supabase.storage.from('sponsors').getPublicUrl(fileName).data.publicUrl;
+  };
+
+  const handleSponsorFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      const file = e.target.files[0];
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'];
+      if (!validTypes.includes(file.type)) {
+        toast.error('Please upload a valid image (PNG, JPEG, WEBP, SVG).');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size exceeds 5MB limit.');
+        return;
+      }
+      setSelectedFile(null);
+      setSponsorFile(file);
+      setSponsorLogoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSponsorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsSponsorSaving(true);
+      let finalLogoUrl = sponsorForm.logo_url?.trim() || '';
+      if (sponsorFile) {
+        finalLogoUrl = await uploadSponsorLogo(sponsorFile);
+      }
+      if (!finalLogoUrl) {
+        toast.error('Please upload a logo image or provide a logo URL.');
+        return;
+      }
+
+      const payload = {
+        name: sponsorForm.name?.trim() || 'Sponsor',
+        logo_url: finalLogoUrl,
+        website_url: sponsorForm.website_url?.trim() || null,
+        order_index: Number(sponsorForm.order_index) || 0
+      };
+
+      if (editingSponsorId) {
+        const { error } = await supabase.from('sponsors').update(payload).eq('id', editingSponsorId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('sponsors').insert([payload]);
+        if (error) throw error;
+      }
+
+      setSponsorModalOpen(false);
+      resetSponsorForm();
+      fetchSponsors();
+      toast.success(editingSponsorId ? 'Sponsor updated!' : 'Sponsor added!');
+    } catch (err: any) {
+      toast.error('Error: ' + (err.message || 'Failed to save sponsor'));
+    } finally {
+      setIsSponsorSaving(false);
+    }
+  };
+
+  const filteredSponsors = React.useMemo(() => {
+    if (!sponsorsSearchTerm) return sponsors;
+    const q = sponsorsSearchTerm.toLowerCase();
+    return sponsors.filter(s => s.name.toLowerCase().includes(q) || (s.website_url && s.website_url.toLowerCase().includes(q)));
+  }, [sponsors, sponsorsSearchTerm]);
+
+  // ══════════════════════════════════════════════════════════════════════
   //  RENDER
   // ══════════════════════════════════════════════════════════════════════
   return (
@@ -626,16 +754,17 @@ const Admin: React.FC = () => {
       </div>
 
       {/* Tab Bar */}
-      <div className="bg-white border-b border-slate-200 px-6 md:px-12 flex gap-0">
+      <div className="bg-white border-b border-slate-200 px-6 md:px-12 flex gap-0 overflow-x-auto">
         {[
           { key: 'events', label: 'Events', icon: Calendar },
           { key: 'team', label: 'Team', icon: Users },
           { key: 'legacy', label: 'Legacy', icon: History },
           { key: 'hall_of_fame', label: 'Hall of Fame', icon: Activity },
+          { key: 'sponsors', label: 'Sponsors', icon: Award },
         ].map(({ key, label, icon: Icon }) => (
           <button key={key}
             onClick={() => setActiveTab(key as any)}
-            className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all ${
+            className={`flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all shrink-0 ${
               activeTab === key
                 ? 'border-[#0ea5e9] text-[#0ea5e9]'
                 : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -975,6 +1104,100 @@ const Admin: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          </>
+        )}
+
+        {/* ── SPONSORS TAB ───────────────────────────────────────── */}
+        {activeTab === 'sponsors' && (
+          <>
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <input
+                  type="text"
+                  placeholder="Search sponsors by name or website..."
+                  value={sponsorsSearchTerm}
+                  onChange={(e) => setSponsorsSearchTerm(e.target.value)}
+                  className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:border-[#0ea5e9] outline-none w-full sm:w-80"
+                />
+                <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-2 rounded-xl whitespace-nowrap">
+                  Total: {sponsors.length}
+                </span>
+              </div>
+              <button 
+                onClick={() => { resetSponsorForm(); setSponsorModalOpen(true); }}
+                className="bg-[#0ea5e9] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-[#0284c7] transition-all flex items-center gap-2 shadow-sm w-full sm:w-auto justify-center"
+              >
+                <Plus size={18} /> Add Sponsor
+              </button>
+            </div>
+
+            {/* Sponsors Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+              {sponsorsLoading ? (
+                <div className="col-span-full flex justify-center py-24">
+                  <div className="w-10 h-10 border-[3px] border-slate-200 border-t-[#0ea5e9] rounded-full animate-spin" />
+                </div>
+              ) : filteredSponsors.length === 0 ? (
+                <div className="col-span-full text-center py-20 bg-white rounded-2xl border border-slate-200">
+                  <Award size={36} className="text-slate-300 mx-auto mb-3" />
+                  <p className="text-slate-500 font-semibold">No sponsors found. Click "Add Sponsor" above to add one.</p>
+                </div>
+              ) : filteredSponsors.map(sponsor => {
+                const previewImg = toDirectImageUrl(sponsor.logo_url) || sponsor.logo_url;
+                return (
+                  <div key={sponsor.id} className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col justify-between hover:shadow-md transition-all group">
+                    <div>
+                      <div className="h-28 w-full bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center p-4 mb-4 overflow-hidden group-hover:bg-slate-100/50 transition-colors">
+                        <img 
+                          src={previewImg} 
+                          alt={sponsor.name} 
+                          className="max-h-full max-w-full object-contain"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/200x80?text=Logo+Error';
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <h3 className="font-bold text-slate-800 text-base leading-tight truncate">{sponsor.name}</h3>
+                        <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">
+                          #{sponsor.order_index}
+                        </span>
+                      </div>
+                      {sponsor.website_url ? (
+                        <a 
+                          href={sponsor.website_url} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="text-xs text-[#0ea5e9] hover:underline flex items-center gap-1 truncate mb-3"
+                        >
+                          <Globe size={12} className="shrink-0" />
+                          <span className="truncate">{sponsor.website_url.replace(/^https?:\/\//, '')}</span>
+                        </a>
+                      ) : (
+                        <p className="text-xs text-slate-400 mb-3 italic">No website link</p>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-1 text-xs text-slate-400">
+                      <button 
+                        onClick={() => handleSponsorEdit(sponsor)} 
+                        className="text-slate-400 hover:text-[#0ea5e9] p-2 rounded-lg hover:bg-slate-50 transition-colors"
+                        title="Edit Sponsor"
+                      >
+                        <Edit3 size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleSponsorDelete(sponsor.id)} 
+                        className="text-slate-400 hover:text-red-500 p-2 rounded-lg hover:bg-slate-50 transition-colors"
+                        title="Delete Sponsor"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </>
         )}
@@ -1440,6 +1663,89 @@ const Admin: React.FC = () => {
                 <button type="submit" form="legacy-form" disabled={isLegacySaving}
                   className="px-6 py-2.5 bg-[#0ea5e9] text-white font-semibold rounded-xl hover:bg-[#0284c7] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                   {isLegacySaving ? 'Saving...' : (editingLegacyId ? 'Update Legacy Member' : 'Add Legacy Member')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── SPONSOR MODAL ─────────────────────────────────────── */}
+      <AnimatePresence>
+        {sponsorModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => { setSponsorModalOpen(false); resetSponsorForm(); }}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="bg-white border-b border-slate-200 p-5 flex justify-between items-center shrink-0">
+                <h2 className="text-xl font-display font-bold text-slate-800">{editingSponsorId ? 'Edit Sponsor' : 'Add Sponsor'}</h2>
+                <button onClick={() => { setSponsorModalOpen(false); resetSponsorForm(); }} className="text-slate-400 hover:text-slate-600"><X size={22} /></button>
+              </div>
+              <div className="p-6 overflow-y-auto flex-1">
+                <form id="sponsor-form" onSubmit={handleSponsorSubmit} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Sponsor / Company Name *</label>
+                    <input required type="text" placeholder='e.g. "Amazon Web Services", "GeeksforGeeks"'
+                      value={sponsorForm.name || ''} onChange={e => setSponsorForm({ ...sponsorForm, name: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                      Upload Logo Image <span className="text-slate-400 font-normal">(PNG, WEBP, SVG, JPEG - Max 5MB)</span>
+                    </label>
+                    <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={handleSponsorFileChange}
+                      className="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-[#0ea5e9]/10 file:text-[#0ea5e9] hover:file:bg-[#0ea5e9]/20 cursor-pointer" />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                      Or Logo URL <span className="text-slate-400 font-normal">(Direct image URL or Google Drive link)</span>
+                    </label>
+                    <input type="url" placeholder="https://..."
+                      value={sponsorForm.logo_url || ''} 
+                      onChange={e => {
+                        const v = e.target.value;
+                        setSponsorForm({ ...sponsorForm, logo_url: v });
+                        if (!sponsorFile) setSponsorLogoPreview(toDirectImageUrl(v) || v);
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                  </div>
+
+                  {sponsorLogoPreview && (
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                      <p className="text-xs font-semibold text-slate-500 mb-2">Logo Preview:</p>
+                      <div className="h-24 max-w-[240px] bg-white border border-slate-200 rounded-lg flex items-center justify-center p-3 overflow-hidden">
+                        <img src={sponsorLogoPreview} alt="Preview" className="max-h-full max-w-full object-contain"
+                          onError={() => setSponsorLogoPreview(null)} />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Website URL <span className="text-slate-400 font-normal">(Optional)</span></label>
+                      <input type="url" placeholder="https://company.com"
+                        value={sponsorForm.website_url || ''} onChange={e => setSponsorForm({ ...sponsorForm, website_url: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Order Index <span className="text-slate-400 font-normal">(Lower shows first)</span></label>
+                      <input type="number" min="0" value={sponsorForm.order_index ?? 0}
+                        onChange={e => setSponsorForm({ ...sponsorForm, order_index: parseInt(e.target.value) || 0 })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    </div>
+                  </div>
+                </form>
+              </div>
+              <div className="bg-slate-50 border-t border-slate-200 p-5 flex justify-end gap-3 shrink-0">
+                <button type="button" onClick={() => { setSponsorModalOpen(false); resetSponsorForm(); }}
+                  className="px-5 py-2.5 font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition-all">Cancel</button>
+                <button type="submit" form="sponsor-form" disabled={isSponsorSaving}
+                  className="px-6 py-2.5 bg-[#0ea5e9] text-white font-semibold rounded-xl hover:bg-[#0284c7] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                  {isSponsorSaving ? 'Saving...' : (editingSponsorId ? 'Update Sponsor' : 'Add Sponsor')}
                 </button>
               </div>
             </motion.div>

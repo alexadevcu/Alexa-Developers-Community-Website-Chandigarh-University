@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Mail, User, MessageSquare, Users, ArrowRight } from 'lucide-react';
+import { X, Send, Mail, User, MessageSquare, ArrowRight } from 'lucide-react';
 import { isValidEmail } from '../lib/utils';
 
 interface ContactModalProps {
@@ -82,78 +82,65 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
 
           {/* Modal Content */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-            className="relative w-full max-w-lg bg-surface/95 backdrop-blur-xl border border-white/20 rounded-[2rem] md:rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,103,131,0.3)] overflow-hidden max-h-[90vh] overflow-y-auto"
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            transition={{ type: "spring", duration: 0.4, bounce: 0.2 }}
+            className="relative w-full max-w-md bg-white/95 backdrop-blur-xl border border-outline-variant/30 rounded-3xl shadow-2xl overflow-hidden"
           >
             {/* Top decorative gradient */}
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#00caff] to-[#006783]" />
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#00caff] to-[#006783]" />
             
             <button
               onClick={onClose}
-              className="absolute top-6 right-6 p-2 text-on-surface-variant hover:text-on-surface hover:bg-black/5 rounded-full transition-colors"
+              className="absolute top-4 right-4 p-1.5 text-on-surface-variant hover:text-on-surface hover:bg-black/5 rounded-full transition-colors z-10"
+              title="Close"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
 
-            <div className="p-10">
-              <h2 className="font-headline-xl text-3xl text-on-surface mb-2">Get in Touch</h2>
-              <p className="font-body-md text-on-surface-variant mb-6">
-                Have questions about the community or want to collaborate? Send us a message!
-              </p>
-
-              {/* Join Community Option */}
-              <div className="bg-[#00caff]/10 border border-[#00caff]/20 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div>
-                  <h4 className="font-bold text-sm text-[#006783] flex items-center gap-1.5">
-                    <Users size={16} /> Looking to Join ADC CU?
-                  </h4>
-                </div>
-                <Link
-                  to="/join"
-                  onClick={onClose}
-                  className="px-4 py-2 bg-[#006783] text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-[#004d63] transition-all shrink-0 flex items-center gap-1.5 shadow-sm"
-                >
-                  Join Us <ArrowRight size={14} />
-                </Link>
+            <div className="p-6 sm:p-7">
+              <div className="mb-4">
+                <h2 className="font-headline-md text-2xl font-bold text-on-surface">Get in Touch</h2>
+                <p className="font-body-sm text-on-surface-variant text-xs mt-0.5">
+                  Have questions or want to collaborate? Send us a message!
+                </p>
               </div>
 
               {isSuccess ? (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-[#00caff]/10 border border-[#00caff]/30 rounded-2xl p-6 text-center"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-[#00caff]/10 border border-[#00caff]/30 rounded-2xl p-6 text-center my-4"
                 >
-                  <div className="w-16 h-16 bg-[#00caff]/20 rounded-full flex items-center justify-center mx-auto mb-4 text-[#006783]">
-                    <Send size={32} />
+                  <div className="w-12 h-12 bg-[#00caff]/20 rounded-full flex items-center justify-center mx-auto mb-3 text-[#006783]">
+                    <Send size={24} />
                   </div>
-                  <h3 className="font-headline-md text-xl text-[#006783] mb-2">Message Sent!</h3>
-                  <p className="font-body-sm text-on-surface-variant">We'll get back to you as soon as possible.</p>
+                  <h3 className="font-headline-md text-lg font-bold text-[#006783] mb-1">Message Sent!</h3>
+                  <p className="font-body-sm text-xs text-on-surface-variant">We'll get back to you as soon as possible.</p>
                 </motion.div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-3.5">
                   <div>
-                    <label className="block font-label-sm uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Name</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1 ml-0.5">Name</label>
                     <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 w-5 h-5" />
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/50 w-4 h-4" />
                       <input
                         type="text"
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
                         required
-                        placeholder="Alex Mercer"
-                        className="w-full bg-surface-variant/50 border border-outline-variant/30 rounded-2xl py-3 pl-12 pr-4 text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-[#00caff] focus:border-transparent transition-all"
+                        placeholder="Your Full Name"
+                        className="w-full bg-slate-50 border border-outline-variant/30 rounded-xl py-2.5 pl-10 pr-3.5 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-[#00caff]/30 focus:border-[#006783] transition-all"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block font-label-sm uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Email</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1 ml-0.5">Email</label>
                     <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 w-5 h-5" />
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant/50 w-4 h-4" />
                       <input
                         type="email"
                         name="email"
@@ -161,25 +148,25 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
                         onChange={handleChange}
                         required
                         pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
-                        title="Please enter a valid email address (e.g. name@example.com or student@cuchd.in)"
-                        placeholder="alex@example.com"
-                        className="w-full bg-surface-variant/50 border border-outline-variant/30 rounded-2xl py-3 pl-12 pr-4 text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-[#00caff] focus:border-transparent transition-all"
+                        title="Please enter a valid email address (e.g. name@example.com)"
+                        placeholder="you@example.com"
+                        className="w-full bg-slate-50 border border-outline-variant/30 rounded-xl py-2.5 pl-10 pr-3.5 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-[#00caff]/30 focus:border-[#006783] transition-all"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block font-label-sm uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Message</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-1 ml-0.5">Message</label>
                     <div className="relative">
-                      <MessageSquare className="absolute left-4 top-4 text-on-surface-variant/50 w-5 h-5" />
+                      <MessageSquare className="absolute left-3.5 top-3 text-on-surface-variant/50 w-4 h-4" />
                       <textarea
                         name="message"
                         value={formData.message}
                         onChange={handleChange}
                         required
                         placeholder="How can we help you?"
-                        rows={4}
-                        className="w-full bg-surface-variant/50 border border-outline-variant/30 rounded-2xl py-4 pl-12 pr-4 text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-[#00caff] focus:border-transparent transition-all resize-none"
+                        rows={3}
+                        className="w-full bg-slate-50 border border-outline-variant/30 rounded-xl py-2.5 pl-10 pr-3.5 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-[#00caff]/30 focus:border-[#006783] transition-all resize-none"
                       />
                     </div>
                   </div>
@@ -187,16 +174,29 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full bg-[#006783] text-white py-4 rounded-2xl font-label-md uppercase tracking-widest hover:bg-[#004d63] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+                    className="w-full bg-[#006783] text-white py-3 rounded-xl font-label-md text-xs font-bold uppercase tracking-widest hover:bg-[#004d63] active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed mt-1"
                   >
                     {isSubmitting ? (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
                       <>
-                        Send Message <Send size={18} />
+                        Send Message <Send size={15} />
                       </>
                     )}
                   </button>
+
+                  <div className="pt-2 text-center">
+                    <p className="text-xs text-on-surface-variant">
+                      Looking to join the core team?{' '}
+                      <Link
+                        to="/join"
+                        onClick={onClose}
+                        className="text-[#006783] font-bold hover:underline inline-flex items-center gap-0.5"
+                      >
+                        Apply Here <ArrowRight size={12} />
+                      </Link>
+                    </p>
+                  </div>
                 </form>
               )}
             </div>
