@@ -114,13 +114,16 @@ const Home = () => {
   const cursorY = useSpring(mouseY, { damping: 25, stiffness: 200 });
 
   useEffect(() => {
-    const updateMousePosition = (e: MouseEvent) => {
-      mouseX.set(e.clientX - 128);
-      mouseY.set(e.clientY - 128);
-    };
-    window.addEventListener('mousemove', updateMousePosition);
-    return () => window.removeEventListener('mousemove', updateMousePosition);
-  }, []);
+    // Only track mouse cursor glow on devices with fine pointer (desktop mouse/trackpad)
+    if (typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches) {
+      const updateMousePosition = (e: MouseEvent) => {
+        mouseX.set(e.clientX - 128);
+        mouseY.set(e.clientY - 128);
+      };
+      window.addEventListener('mousemove', updateMousePosition, { passive: true });
+      return () => window.removeEventListener('mousemove', updateMousePosition);
+    }
+  }, [mouseX, mouseY]);
 
   useEffect(() => {
     const fetchHomeData = async () => {
@@ -177,12 +180,13 @@ const Home = () => {
     <>
       <div className="w-full bg-surface relative overflow-hidden">
 
-        {/* Mouse Follower Glow */}
+        {/* Mouse Follower Glow (Only on desktop fine pointer devices, zero blur shader) */}
         <motion.div
-          className="pointer-events-none fixed top-0 left-0 z-50 w-64 h-64 rounded-full bg-[#0ea5e9]/20 blur-3xl transform-gpu"
+          className="pointer-events-none fixed top-0 left-0 z-50 w-64 h-64 rounded-full hidden lg:block transform-gpu"
           style={{
             x: cursorX,
             y: cursorY,
+            background: 'radial-gradient(circle, rgba(14, 165, 233, 0.12) 0%, rgba(14, 165, 233, 0) 70%)',
           }}
         />
 
@@ -191,7 +195,7 @@ const Home = () => {
           <section className="min-h-[80vh] flex flex-col justify-center px-6 md:px-16 lg:px-24 relative overflow-hidden pt-14 md:pt-0">
 
             {/* Full-width Video Background */}
-            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-surface">
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-surface" style={{ isolation: 'isolate', contain: 'paint' }}>
               <video
                 autoPlay
                 loop
@@ -287,7 +291,7 @@ const Home = () => {
           </section>
 
           {/* 4. Empowering Innovation */}
-          <section id="empowering" className="py-20 px-4 max-w-container-max mx-auto">
+          <section id="empowering" className="py-20 px-4 max-w-container-max mx-auto content-auto">
             <div>
               <h2 className="font-headline-xl text-on-surface mb-8 md:mb-12 text-center md:text-left text-3xl md:text-5xl tracking-tight">
                 Empowering Innovation
@@ -301,7 +305,7 @@ const Home = () => {
                   { icon: Users, title: "Mentorship", desc: "Direct feedback loops with Alexa Champions." }
                 ].map((item, idx) => (
                   <div key={idx} className="glass-card p-8 rounded-2xl group">
-                    <div className="h-14 w-14 rounded-xl bg-white/50 backdrop-blur-md border border-white/40 shadow-sm flex items-center justify-center text-[#006783] mb-6 group-hover:scale-110 transition-transform">
+                    <div className="h-14 w-14 rounded-xl bg-white/50 border border-white/40 shadow-sm flex items-center justify-center text-[#006783] mb-6 group-hover:scale-110 transition-transform">
                       <item.icon size={28} strokeWidth={1.5} />
                     </div>
                     <h3 className="font-headline-md text-on-surface mb-3 text-2xl">{item.title}</h3>
@@ -313,7 +317,7 @@ const Home = () => {
           </section>
 
           {/* 5. About Us */}
-          <section id="about-us" className="py-20 px-4 max-w-container-max mx-auto">
+          <section id="about-us" className="py-20 px-4 max-w-container-max mx-auto content-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
               <div>
                 <h2 className="font-headline-xl text-on-surface text-4xl md:text-5xl tracking-tight mb-8">Bridging the Gap Between Academia and Industry.</h2>
@@ -337,7 +341,7 @@ const Home = () => {
                 <div className="absolute -inset-4 bg-gradient-to-tr from-[#00caff]/20 to-transparent rounded-[3rem] blur-2xl opacity-50" />
                 <div className="relative aspect-square md:aspect-[4/5] bg-surface-variant rounded-[2.5rem] border border-outline-variant/30 overflow-hidden shadow-2xl group hover:-translate-y-2 transition-transform duration-500">
                   <div className="absolute inset-0 bg-surface-dim transition-transform duration-700 group-hover:scale-105" />
-                  <img src={teamGroupPic} alt="ADC CU Team" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                  <img src={teamGroupPic} alt="ADC CU Team" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                   <div className="absolute top-6 left-6 right-6 bottom-6 border border-white/20 rounded-[1.5rem] z-10 pointer-events-none" />
                 </div>
               </div>
@@ -345,7 +349,7 @@ const Home = () => {
           </section>
 
           {/* 6. Community Events */}
-          <section id="events" className="py-20 px-4 bg-transparent relative z-10">
+          <section id="events" className="py-20 px-4 bg-transparent relative z-10 content-auto">
             <div className="max-w-container-max mx-auto">
               <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
                 <h2 className="font-headline-xl text-on-surface text-4xl md:text-5xl tracking-tight">
@@ -376,7 +380,7 @@ const Home = () => {
                         <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-sm ${
                           event.status === 'upcoming' 
                             ? 'bg-red-600 text-white' 
-                            : 'bg-slate-900/80 backdrop-blur-md text-white'
+                            : 'bg-slate-900/80 text-white'
                         }`}>
                           {event.status === 'upcoming' ? 'Upcoming' : 'Completed'}
                         </div>
@@ -384,6 +388,8 @@ const Home = () => {
                           <img 
                             src={imgUrl} 
                             alt={event.name} 
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                           />
                         ) : (
@@ -432,7 +438,7 @@ const Home = () => {
                         <div className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider z-20 shadow-sm ${
                           event.status === 'upcoming' 
                             ? 'bg-red-600 text-white' 
-                            : 'bg-slate-900/80 backdrop-blur-md text-white'
+                            : 'bg-slate-900/80 text-white'
                         }`}>
                           {event.status === 'upcoming' ? 'Upcoming' : 'Completed'}
                         </div>
@@ -440,6 +446,8 @@ const Home = () => {
                           <img 
                             src={imgUrl} 
                             alt={event.name} 
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                           />
                         ) : (
@@ -473,7 +481,7 @@ const Home = () => {
           </section>
 
           {/* 7. Community Statistics */}
-          <section className="py-20 px-4 bg-transparent relative z-10">
+          <section className="py-20 px-4 bg-transparent relative z-10 content-auto">
             <div className="max-w-7xl mx-auto px-6 relative">
               <div className="text-center mb-12">
                 <h2 className="font-headline-xl text-4xl md:text-5xl tracking-tight text-on-surface mb-4">By the Numbers</h2>
@@ -495,7 +503,7 @@ const Home = () => {
             </div>
           </section>
           {/* 8. Innovation Gallery */}
-          <section id="gallery" className="py-20 px-4 max-w-container-max mx-auto">
+          <section id="gallery" className="py-20 px-4 max-w-container-max mx-auto content-auto">
             <div className="mb-12">
               <h2 className="font-headline-xl text-4xl md:text-5xl tracking-tight text-on-surface mb-4">Innovation Gallery</h2>
               <p className="font-body-lg text-on-surface-variant text-lg max-w-2xl">Glimpses of collaboration, creativity, and the power of voice technology.</p>
@@ -504,22 +512,22 @@ const Home = () => {
             {/* Bento Box Gallery Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
               <div className="aspect-[4/3] rounded-3xl overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-md">
-                <img src={gal1} alt="ADC Community Event" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <img src={gal1} alt="ADC Community Event" loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
               </div>
               <div className="aspect-[4/3] rounded-3xl overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-md">
-                <img src={gal2} alt="ADC Students Collaborating" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <img src={gal2} alt="ADC Students Collaborating" loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
               </div>
               <div className="aspect-[4/3] rounded-3xl overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-md">
-                <img src={gal3} alt="ADC Team Project" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <img src={gal3} alt="ADC Team Project" loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
               </div>
               <div className="sm:col-span-2 md:col-span-3 aspect-[21/9] rounded-3xl overflow-hidden group cursor-pointer border border-outline-variant/30 shadow-md">
-                <img src={gal4} alt="ADC Team Gathering" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <img src={gal4} alt="ADC Team Gathering" loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
               </div>
             </div>
           </section>
 
           {/* 8.5 Member Spotlight */}
-          <section className="py-20 px-4 max-w-container-max mx-auto bg-transparent">
+          <section className="py-20 px-4 max-w-container-max mx-auto bg-transparent content-auto">
             <div className="text-center mb-16">
               <h2 className="font-headline-xl text-4xl md:text-5xl tracking-tight text-on-surface mb-4">Member Spotlight</h2>
               <p className="font-body-lg text-on-surface-variant text-lg">Hear from the makers shaping the voice ecosystem.</p>
@@ -552,7 +560,7 @@ const Home = () => {
                     {testimonial.quote}
                   </p>
                   <div className="flex items-center gap-4 mt-auto">
-                    <img src={testimonial.avatar} alt={testimonial.name} className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm" />
+                    <img src={testimonial.avatar} alt={testimonial.name} loading="lazy" decoding="async" className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm" />
                     <div>
                       <h3 className="font-headline-md text-on-surface text-lg font-bold">{testimonial.name}</h3>
                       <p className="font-label-sm text-on-surface-variant uppercase tracking-wider text-xs">{testimonial.role}</p>
@@ -564,7 +572,7 @@ const Home = () => {
           </section>
 
           {/* 9. Faculty Coordinators */}
-          <section id="team" className="py-20 px-4 bg-[#001f2a] text-white relative overflow-hidden">
+          <section id="team" className="py-20 px-4 bg-[#001f2a] text-white relative overflow-hidden content-auto">
             {/* Tech grid overlay background */}
             <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
@@ -582,7 +590,7 @@ const Home = () => {
                     <div key={i} className="flex flex-col items-center text-center group cursor-pointer hover:-translate-y-2 transition-transform bg-white/5 p-8 rounded-3xl border border-white/10">
                       <div className="w-32 h-32 rounded-full bg-surface-variant/20 mb-6 border-2 border-[#00caff] relative overflow-hidden shadow-[0_0_20px_rgba(0,202,255,0.2)]">
                         {faculty.image ? (
-                          <img src={faculty.image} alt={faculty.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          <img src={faculty.image} alt={faculty.name} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-surface-variant/30 text-[#00caff]/40">
                             <User size={48} />
@@ -601,9 +609,9 @@ const Home = () => {
 
 
           {/* 9. Join Us Finale */}
-          <section id="join" className="w-full py-32 px-6 flex flex-col items-center justify-center text-center relative overflow-hidden bg-surface-container-lowest border-t border-outline-variant/30">
-            {/* Deep ambient blur background */}
-            <div className="absolute inset-0 bg-surface/50 opacity-80 backdrop-blur-xl z-0 pointer-events-none"></div>
+          <section id="join" className="w-full py-32 px-6 flex flex-col items-center justify-center text-center relative overflow-hidden bg-surface-container-lowest border-t border-outline-variant/30 content-auto">
+            {/* Ambient background overlay */}
+            <div className="absolute inset-0 bg-surface/80 z-0 pointer-events-none"></div>
 
             {/* Rotating 360-degree border ring adapted for light theme */}
             <div className="absolute inset-0 border-[2px] border-[#00caff]/20 m-8 rounded-[100px] z-0 shadow-[0_0_50px_rgba(0,103,131,0.05)_inset]" />
