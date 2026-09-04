@@ -6,6 +6,7 @@ import {
   MapPin, 
   ExternalLink, 
   ArrowLeft, 
+  ArrowRight,
   Sparkles, 
   ShieldCheck, 
   Award, 
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { slugify } from '../lib/utils';
+import { fetchDriveFolderImages } from '../lib/driveExtractor';
 import toast from 'react-hot-toast';
 
 interface Event {
@@ -41,7 +43,15 @@ interface Event {
 const toDirectImageUrl = (url: string | null, width = 1200): string | null => {
   if (!url) return null;
   const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (match) return `https://lh3.googleusercontent.com/d/${match[1]}=w${width}`;
+  if (match) {
+    return `https://lh3.googleusercontent.com/d/${match[1]}=w${width}`;
+  }
+  if (url.includes('googleusercontent.com')) {
+    if (url.includes('=s') || url.includes('=w')) {
+      return url.replace(/=[sw]\d+.*$/, `=w${width}`);
+    }
+    return `${url}=w${width}`;
+  }
   return url;
 };
 
@@ -71,6 +81,8 @@ const EventDetail: React.FC = () => {
   const [event, setEvent] = useState<Event | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [dynamicGalleryImages, setDynamicGalleryImages] = useState<string[]>([]);
+  const [isExtractingGallery, setIsExtractingGallery] = useState(false);
 
   const countdown = useCountdown(event?.status === 'upcoming' ? event.end_date || event.event_date : null);
 
@@ -89,7 +101,6 @@ const EventDetail: React.FC = () => {
       try {
         setIsLoading(true);
         
-        // Fetch events list and match by slug or exact UUID
         const { data, error } = await supabase
           .from('events')
           .select('*');
@@ -113,7 +124,6 @@ const EventDetail: React.FC = () => {
 
         setEvent(matched);
 
-        // Preload poster image before dismissing loader
         const poster = toDirectImageUrl(matched.poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&auto=format&fit=crop";
         const img = new Image();
         img.onload = () => setIsLoading(false);
@@ -152,20 +162,62 @@ const EventDetail: React.FC = () => {
     }
   };
 
-  // Parse gallery images safely
-  const getGalleryImages = (): string[] => {
-    if (!event?.gallery_urls) return [];
+  // Parse gallery data safely (supports Drive folder URLs, JSON arrays, and comma/newline separated URLs)
+  const parseGalleryData = () => {
+    if (!event?.gallery_urls) return { folderUrl: null, images: [] };
+    let rawItems: string[] = [];
     try {
-      if (event.gallery_urls.startsWith('[')) {
-        return JSON.parse(event.gallery_urls);
+      const trimmed = event.gallery_urls.trim();
+      if (trimmed.startsWith('[')) {
+        rawItems = JSON.parse(trimmed);
+      } else {
+        rawItems = trimmed.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
       }
-      return event.gallery_urls.split(',').map(s => s.trim()).filter(Boolean);
     } catch {
-      return [];
+      rawItems = [event.gallery_urls.trim()];
     }
+
+    let folderUrl: string | null = null;
+    const images: string[] = [];
+
+    for (const item of rawItems) {
+      if (!item) continue;
+      if (
+        item.includes('drive.google.com/drive/folders') ||
+        item.includes('/folders/') ||
+        (item.includes('drive.google.com') && !item.includes('/file/d/') && !item.includes('id='))
+      ) {
+        if (!folderUrl) folderUrl = item;
+      } else {
+        images.push(item);
+      }
+    }
+
+    return { folderUrl, images };
   };
 
-  const galleryImages = getGalleryImages();
+  const { folderUrl, images: explicitGalleryImages } = parseGalleryData();
+
+  useEffect(() => {
+    const { folderUrl: fUrl, images: explicitImgs } = parseGalleryData();
+    if (explicitImgs.length > 0) {
+      setDynamicGalleryImages(explicitImgs);
+    } else if (fUrl) {
+      setIsExtractingGallery(true);
+      fetchDriveFolderImages(fUrl)
+        .then((extracted) => {
+          if (extracted && extracted.length > 0) {
+            setDynamicGalleryImages(extracted);
+          }
+        })
+        .catch((err) => console.error("Failed to extract folder images:", err))
+        .finally(() => setIsExtractingGallery(false));
+    } else {
+      setDynamicGalleryImages([]);
+    }
+  }, [event?.gallery_urls]);
+
+  const galleryImages = dynamicGalleryImages.length > 0 ? dynamicGalleryImages : explicitGalleryImages;
 
   if (isLoading) {
     return (
@@ -288,6 +340,7 @@ const EventDetail: React.FC = () => {
                   <img 
                     src={posterSrc} 
                     alt={event.name} 
+                    referrerPolicy="no-referrer"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -351,6 +404,19 @@ const EventDetail: React.FC = () => {
                     Registrations Closed
                   </button>
                 )}
+
+                {/* Explore Highlights Button in Sidebar */}
+                {(folderUrl || galleryImages.length > 0) && (
+                  <Link 
+                    to={`/events/${id}/highlights`}
+                    className="w-full mt-3 py-3.5 bg-gradient-to-r from-sky-50 to-blue-50 hover:from-sky-100 hover:to-blue-100 text-[#0ea5e9] border border-sky-200/80 hover:border-sky-300 font-bold rounded-2xl transition-all shadow-xs flex items-center justify-center gap-2 text-sm group"
+                  >
+                    <Sparkles size={16} />
+                    <span>Explore Highlights</span>
+                    <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                )}
+
                 <p className="text-center text-xs text-slate-400 mt-3 font-medium">Registrations are managed externally.</p>
               </div>
 
@@ -360,6 +426,120 @@ const EventDetail: React.FC = () => {
           {/* ── Left Main Content Column (Second on mobile) ── */}
           <div className="flex-1 min-w-0 order-2 lg:order-1">
             
+            {/* Event Highlights & Moments Showcase Card */}
+            {(folderUrl || galleryImages.length > 0) && (
+              <div className="bg-gradient-to-br from-white via-sky-50/30 to-slate-50 p-6 sm:p-8 rounded-3xl border border-sky-100 shadow-sm mb-8 overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-[#0ea5e9]/10 border border-[#0ea5e9]/20 flex items-center justify-center text-[#0ea5e9] shrink-0">
+                      <ImageIcon size={22} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xl sm:text-2xl font-black text-slate-900">Event Highlights & Moments</h2>
+                        {galleryImages.length > 0 && (
+                          <span className="hidden sm:inline-flex px-2.5 py-0.5 bg-[#0ea5e9]/10 text-[#0ea5e9] font-mono text-xs font-bold rounded-full">
+                            {galleryImages.length} Photos
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Captures, workshops, awards & participant highlights</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                    <Link
+                      to={`/events/${id}/highlights`}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md hover:shadow-lg group"
+                    >
+                      <Sparkles size={15} />
+                      <span>Explore Highlights</span>
+                      <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Loading skeleton while extracting Drive folder */}
+                {isExtractingGallery && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-[#0ea5e9] animate-pulse">
+                      <div className="w-3.5 h-3.5 rounded-full border-2 border-[#0ea5e9] border-t-transparent animate-spin" />
+                      <span>Fetching photos from Google Drive...</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="aspect-[4/3] rounded-2xl bg-slate-100 border border-slate-200/80 animate-pulse" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Photo Preview Strip (First 4 photos, 4th has +more overlay) */}
+                {!isExtractingGallery && galleryImages.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {galleryImages.slice(0, 4).map((imgUrl, idx) => {
+                      const isLast = idx === 3 && galleryImages.length > 4;
+                      return (
+                        <Link
+                          key={idx}
+                          to={`/events/${id}/highlights`}
+                          className="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 group relative block cursor-pointer shadow-2xs hover:shadow-sm transition-all"
+                        >
+                          <img 
+                            src={toDirectImageUrl(imgUrl, 600)!} 
+                            alt={`${event.name} Preview ${idx + 1}`} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            loading="lazy"
+                            decoding="async"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              const match = imgUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || imgUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                              if (match) {
+                                const fileId = match[1];
+                                if (target.src.includes('googleusercontent.com')) {
+                                  target.src = `https://drive.google.com/thumbnail?id=${fileId}&sz=w600`;
+                                } else if (!target.src.includes('uc?export=view')) {
+                                  target.src = `https://drive.google.com/uc?export=view&id=${fileId}`;
+                                }
+                              }
+                            }}
+                          />
+                          {isLast ? (
+                            <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs flex flex-col items-center justify-center text-white p-2 group-hover:bg-slate-950/80 transition-colors">
+                              <span className="text-xl font-black font-mono">+{galleryImages.length - 3}</span>
+                              <span className="text-[11px] font-semibold uppercase tracking-wider text-sky-200">More Photos</span>
+                            </div>
+                          ) : (
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2.5">
+                              <span className="text-white text-xs font-semibold">View Highlights</span>
+                            </div>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Empty / Folder-only fallback */}
+                {!isExtractingGallery && galleryImages.length === 0 && folderUrl && (
+                  <div className="bg-white/80 rounded-2xl p-5 border border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p className="text-xs text-slate-500 text-center sm:text-left">
+                      Official photo highlights are available. Click to explore captures.
+                    </p>
+                    <Link
+                      to={`/events/${id}/highlights`}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0ea5e9] text-white font-bold text-xs rounded-xl hover:bg-[#0284c7] transition-all shrink-0"
+                    >
+                      <Sparkles size={14} />
+                      <span>Explore Highlights</span>
+                      <ArrowRight size={14} />
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* About the Event */}
             <div className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-sm mb-8">
               <div className="flex items-center gap-3 mb-4">
@@ -411,28 +591,6 @@ const EventDetail: React.FC = () => {
               <div className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-sm mb-8">
                 <p className="text-xs uppercase tracking-widest font-mono text-slate-400 mb-2">In Partnership With</p>
                 <p className="text-xl font-bold text-slate-800">{event.partnerships}</p>
-              </div>
-            )}
-
-            {/* Event Gallery */}
-            {galleryImages.length > 0 && (
-              <div className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-sm mb-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <ImageIcon className="text-[#0ea5e9]" size={22} />
-                  <h2 className="text-2xl font-bold text-slate-900">Event Gallery & Moments</h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {galleryImages.map((imgUrl, idx) => (
-                    <div key={idx} className="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 group">
-                      <img 
-                        src={toDirectImageUrl(imgUrl, 600)!} 
-                        alt={`${event.name} Gallery ${idx + 1}`} 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                      />
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
 

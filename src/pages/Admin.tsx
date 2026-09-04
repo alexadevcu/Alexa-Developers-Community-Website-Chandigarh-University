@@ -5,9 +5,10 @@ import toast, { Toaster } from 'react-hot-toast';
 import {
   Plus, Trash2, Image as ImageIcon, Calendar, Edit3, X, CheckCircle2,
   Activity, LayoutDashboard, Clock, LogOut, Users, Link as LinkIcon, UserCircle, Archive, Pin, History,
-  Award, Globe
+  Award, Globe, Upload, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fetchDriveFolderImages } from '../lib/driveExtractor';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Event {
@@ -213,12 +214,72 @@ const Admin: React.FC = () => {
     }
   };
 
+  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
+
   const uploadImage = async (file: File): Promise<string> => {
     const ext = file.name.split('.').pop();
     const fileName = `${Math.random().toString(36).substring(2)}.${ext}`;
     const { error } = await supabase.storage.from('event_posters').upload(fileName, file);
     if (error) throw error;
     return supabase.storage.from('event_posters').getPublicUrl(fileName).data.publicUrl;
+  };
+
+  const handleMultipleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploadingGallery(true);
+    const toastId = toast.loading(`Uploading ${files.length} gallery photos...`);
+    try {
+      const uploadedUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.size > 10 * 1024 * 1024) continue;
+        const url = await uploadImage(file);
+        uploadedUrls.push(url);
+      }
+
+      const existing = eventForm.gallery_urls ? eventForm.gallery_urls.trim() : '';
+      const newUrlsStr = uploadedUrls.join(', ');
+      const combined = existing ? `${existing}, ${newUrlsStr}` : newUrlsStr;
+      
+      setEventForm(prev => ({ ...prev, gallery_urls: combined }));
+      toast.success(`Successfully uploaded ${uploadedUrls.length} photos!`, { id: toastId });
+    } catch (err: any) {
+      toast.error('Failed to upload some photos: ' + err.message, { id: toastId });
+    } finally {
+      setIsUploadingGallery(false);
+      e.target.value = '';
+    }
+  };
+
+  const [isExtractingFolder, setIsExtractingFolder] = useState(false);
+
+  const handleExtractDriveFolder = async () => {
+    const currentVal = eventForm.gallery_urls?.trim();
+    if (!currentVal) {
+      toast.error('Please paste a Google Drive folder link in the field below first.');
+      return;
+    }
+
+    setIsExtractingFolder(true);
+    const toastId = toast.loading('Extracting photo links from Google Drive folder...');
+    try {
+      const extracted = await fetchDriveFolderImages(currentVal);
+      if (extracted.length === 0) {
+        toast.error('No photos found in folder. Ensure the folder is set to "Anyone with the link can view".', { id: toastId });
+      } else {
+        setEventForm(prev => ({
+          ...prev,
+          gallery_urls: extracted.join(', ')
+        }));
+        toast.success(`Successfully extracted ${extracted.length} photos from Google Drive folder!`, { id: toastId });
+      }
+    } catch (err: any) {
+      toast.error('Failed to extract: ' + err.message, { id: toastId });
+    } finally {
+      setIsExtractingFolder(false);
+    }
   };
 
   const handleEventSubmit = async (e: React.FormEvent) => {
@@ -1304,10 +1365,46 @@ const Admin: React.FC = () => {
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none resize-y" />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Gallery URLs (Comma-separated Google Drive Links)</label>
-                    <textarea rows={2} value={eventForm.gallery_urls || ''} onChange={e => setEventForm({ ...eventForm, gallery_urls: e.target.value })}
-                      placeholder="https://drive.google.com/file/d/..., https://drive.google.com/file/d/..."
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/20 outline-none resize-y" />
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                      <label className="block text-sm font-semibold text-slate-700">
+                        Event Gallery Photos
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleExtractDriveFolder}
+                          disabled={isExtractingFolder || !eventForm.gallery_urls}
+                          className="text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                          title="Extract all photos from the pasted Google Drive folder link"
+                        >
+                          <Zap size={12} className={isExtractingFolder ? 'animate-spin' : ''} />
+                          <span>{isExtractingFolder ? 'Extracting...' : '⚡ Extract Drive Photos'}</span>
+                        </button>
+
+                        <label className="cursor-pointer text-xs font-bold text-[#0ea5e9] hover:text-[#0284c7] flex items-center gap-1 bg-sky-50 hover:bg-sky-100 px-2.5 py-1 rounded-lg border border-sky-200 transition-colors">
+                          <Upload size={12} />
+                          <span>{isUploadingGallery ? 'Uploading...' : '+ Upload Photos'}</span>
+                          <input 
+                            type="file" 
+                            multiple 
+                            accept="image/*" 
+                            className="hidden" 
+                            disabled={isUploadingGallery}
+                            onChange={handleMultipleGalleryUpload} 
+                          />
+                        </label>
+                      </div>
+                    </div>
+                    <textarea 
+                      rows={2} 
+                      value={eventForm.gallery_urls || ''} 
+                      onChange={e => setEventForm({ ...eventForm, gallery_urls: e.target.value })}
+                      placeholder="Paste single Google Drive folder link (e.g. https://drive.google.com/drive/folders/...) or image links"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/20 outline-none resize-y text-xs font-mono" 
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      💡 <strong>Super Simple:</strong> Paste your Google Drive folder link here and click <strong>⚡ Extract Drive Photos</strong>, or just leave the folder link and the event page will automatically extract and display the photos directly on the website!
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Poster Image *</label>

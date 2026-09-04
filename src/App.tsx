@@ -12,6 +12,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 const Join = lazy(() => import('./pages/Join'));
 const Events = lazy(() => import('./pages/Events'));
 const EventDetail = lazy(() => import('./pages/EventDetail'));
+const EventGallery = lazy(() => import('./pages/EventGallery'));
 const Team = lazy(() => import('./pages/Team'));
 const TeamMemberDetail = lazy(() => import('./pages/TeamMemberDetail'));
 const Legacy = lazy(() => import('./pages/Legacy'));
@@ -48,6 +49,8 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/events" element={<Events />} />
                 <Route path="/events/:id" element={<EventDetail />} />
+                <Route path="/events/:id/highlights" element={<EventGallery />} />
+                <Route path="/events/:id/gallery" element={<EventGallery />} />
                 <Route path="/team" element={<Team />} />
                 <Route path="/team/:id" element={<TeamMemberDetail />} />
                 <Route path="/legacy" element={<Legacy />} />
