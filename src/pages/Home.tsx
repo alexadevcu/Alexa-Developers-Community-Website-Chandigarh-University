@@ -264,6 +264,7 @@ const Home = () => {
                     <img 
                       src={imgSrc} 
                       alt={sponsor.name || `Sponsor ${i + 1}`} 
+                      referrerPolicy="no-referrer"
                       className="h-14 sm:h-16 md:h-20 w-auto object-contain max-w-[180px] sm:max-w-[220px] md:max-w-[280px] drop-shadow-sm" 
                     />
                   );
@@ -390,6 +391,7 @@ const Home = () => {
                             alt={event.name} 
                             loading="lazy"
                             decoding="async"
+                            referrerPolicy="no-referrer"
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                           />
                         ) : (
@@ -448,6 +450,7 @@ const Home = () => {
                             alt={event.name} 
                             loading="lazy"
                             decoding="async"
+                            referrerPolicy="no-referrer"
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                           />
                         ) : (

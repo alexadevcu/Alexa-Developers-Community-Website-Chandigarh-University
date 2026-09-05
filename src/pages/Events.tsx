@@ -186,6 +186,7 @@ const Events: React.FC = () => {
               <img 
                 src={toDirectImageUrl(heroEvents[heroIndex].poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop"} 
                 alt={heroEvents[heroIndex].name} 
+                referrerPolicy="no-referrer"
                 className="w-full h-full object-cover origin-center opacity-40"
               />
               {/* Soft Gradient Overlays for Light Theme text contrast */}
@@ -363,6 +364,7 @@ const Events: React.FC = () => {
                   <img
                     src={toDirectImageUrl(event.poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"}
                     alt={event.name}
+                    referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute top-4 left-4 flex flex-wrap gap-2">
@@ -497,6 +499,7 @@ const Events: React.FC = () => {
                     <img 
                       src={toDirectImageUrl(event.poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"} 
                       alt={event.name} 
+                      referrerPolicy="no-referrer"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute top-4 left-4 flex flex-wrap gap-2">
@@ -560,6 +563,7 @@ const Events: React.FC = () => {
                       <img 
                         src={toDirectImageUrl(event.poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"} 
                         alt={event.name} 
+                        referrerPolicy="no-referrer"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute top-4 left-4 flex flex-wrap gap-2">
