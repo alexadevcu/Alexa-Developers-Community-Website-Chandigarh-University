@@ -20,7 +20,9 @@ ADD COLUMN IF NOT EXISTS partnerships TEXT,
 ADD COLUMN IF NOT EXISTS end_date TIMESTAMPTZ,
 ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT false,
 ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS venue TEXT;
+ADD COLUMN IF NOT EXISTS venue TEXT,
+ADD COLUMN IF NOT EXISTS website_url TEXT,
+ADD COLUMN IF NOT EXISTS website_label TEXT;
 
 -- 3. Create Sponsors Table for dynamic Homepage Marquee management
 CREATE TABLE IF NOT EXISTS sponsors (

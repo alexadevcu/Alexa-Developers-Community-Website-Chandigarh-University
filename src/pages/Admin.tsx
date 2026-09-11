@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchDriveFolderImages } from '../lib/driveExtractor';
+import { getEventWebsite, getEventWebsiteLabel, getCleanDescription } from '../lib/utils';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Event {
@@ -24,6 +25,8 @@ interface Event {
   eligibility?: string | null;
   rules_guidelines?: string | null;
   show_external_website?: boolean;
+  website_url?: string | null;
+  website_label?: string | null;
 }
 
 interface Member {
@@ -174,13 +177,18 @@ const Admin: React.FC = () => {
   };
 
   const resetEventForm = () => {
-    setEventForm({ status: 'upcoming', is_registration_open: true, is_archived: false, is_pinned: false });
+    setEventForm({ status: 'upcoming', is_registration_open: true, is_archived: false, is_pinned: false, website_url: '', website_label: '' });
     setSelectedFile(null); setPreviewUrl(null); setEditingEventId(null);
   };
 
   const handleEventEdit = (event: Event) => {
+    const extractedWebsite = getEventWebsite(event) || '';
+    const extractedLabel = getEventWebsiteLabel(event);
     setEventForm({ 
       ...event, 
+      website_url: event.website_url || extractedWebsite,
+      website_label: event.website_label || (extractedLabel !== 'Official Event Website' ? extractedLabel : ''),
+      description: getCleanDescription(event.description),
       event_date: new Date(event.event_date).toISOString().slice(0, 16),
       end_date: event.end_date ? new Date(event.end_date).toISOString().slice(0, 16) : ''
     });
@@ -288,26 +296,59 @@ const Admin: React.FC = () => {
       setIsUploading(true);
       let finalPosterUrl = eventForm.poster_url;
       if (selectedFile) finalPosterUrl = await uploadImage(selectedFile);
+      const websiteUrlTrimmed = eventForm.website_url?.trim() || null;
+      const websiteLabelTrimmed = eventForm.website_label?.trim() || null;
+      let finalDescription = eventForm.description ? eventForm.description.trim() : '';
+
       const payload: any = { 
         ...eventForm, 
+        description: finalDescription,
         poster_url: finalPosterUrl,
-        end_date: eventForm.end_date ? eventForm.end_date : null
+        end_date: eventForm.end_date ? eventForm.end_date : null,
+        website_url: websiteUrlTrimmed,
+        website_label: websiteLabelTrimmed
       };
       
-      if (editingEventId) {
-        let { error } = await supabase.from('events').update(payload).eq('id', editingEventId);
-        if (error && error.message.includes('show_external_website')) {
-          delete payload.show_external_website;
-          const retry = await supabase.from('events').update(payload).eq('id', editingEventId);
-          if (retry.error) throw retry.error;
-        } else if (error) throw error;
-      } else {
-        let { error } = await supabase.from('events').insert([payload]);
-        if (error && error.message.includes('show_external_website')) {
-          delete payload.show_external_website;
-          const retry = await supabase.from('events').insert([payload]);
-          if (retry.error) throw retry.error;
-        } else if (error) throw error;
+      const saveEvent = async (data: any) => {
+        if (editingEventId) {
+          return await supabase.from('events').update(data).eq('id', editingEventId);
+        } else {
+          return await supabase.from('events').insert([data]);
+        }
+      };
+
+      const stripUnknownColumns = (p: any, errMsg: string) => {
+        if (errMsg.includes('website_label')) {
+          delete p.website_label;
+          if (websiteUrlTrimmed) {
+            p.description = `${finalDescription}\n\n<!-- website: ${websiteUrlTrimmed}${websiteLabelTrimmed ? ` | ${websiteLabelTrimmed}` : ''} -->`;
+          }
+        }
+        if (errMsg.includes('website_url')) {
+          delete p.website_url;
+          if (websiteUrlTrimmed) {
+            p.description = `${finalDescription}\n\n<!-- website: ${websiteUrlTrimmed}${websiteLabelTrimmed ? ` | ${websiteLabelTrimmed}` : ''} -->`;
+          }
+        }
+        if (errMsg.includes('show_external_website')) {
+          delete p.show_external_website;
+        }
+      };
+
+      let { error } = await saveEvent(payload);
+
+      if (error && (error.message.includes('show_external_website') || error.message.includes('website_url') || error.message.includes('website_label'))) {
+        stripUnknownColumns(payload, error.message);
+        let retry = await saveEvent(payload);
+        if (retry.error && (retry.error.message.includes('show_external_website') || retry.error.message.includes('website_url') || retry.error.message.includes('website_label'))) {
+          stripUnknownColumns(payload, retry.error.message);
+          const finalRetry = await saveEvent(payload);
+          if (finalRetry.error) throw finalRetry.error;
+        } else if (retry.error) {
+          throw retry.error;
+        }
+      } else if (error) {
+        throw error;
       }
 
       setEventModalOpen(false); resetEventForm(); fetchEvents();
@@ -945,7 +986,18 @@ const Admin: React.FC = () => {
                         <CheckCircle2 size={11} />
                         {(event.status === 'upcoming' && (event.is_registration_open ?? true)) ? 'Reg Open' : 'Reg Closed'}
                       </button>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 items-center">
+                        {getEventWebsite(event) && (
+                          <a 
+                            href={getEventWebsite(event)!} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="p-1.5 rounded text-slate-400 hover:text-[#0ea5e9] hover:bg-sky-50 transition-colors" 
+                            title="Visit Event Website"
+                          >
+                            <Globe size={16} />
+                          </a>
+                        )}
                         <button onClick={() => togglePin(event.id, event.is_pinned ?? false)} 
                           className={`p-1.5 rounded transition-colors ${event.is_pinned ? 'text-amber-500 bg-amber-50' : 'text-slate-400 hover:text-amber-500 hover:bg-slate-50'}`} title="Toggle Pin">
                           <Pin size={16} />
@@ -954,8 +1006,8 @@ const Admin: React.FC = () => {
                           className={`p-1.5 rounded transition-colors ${event.is_archived ? 'text-red-500 bg-red-50' : 'text-slate-400 hover:text-red-500 hover:bg-slate-50'}`} title="Toggle Archive">
                           <Archive size={16} />
                         </button>
-                        <button onClick={() => handleEventEdit(event)} className="text-slate-400 hover:text-[#0ea5e9] p-1.5 rounded hover:bg-slate-50 transition-colors"><Edit3 size={16} /></button>
-                        <button onClick={() => handleEventDelete(event.id)} className="text-slate-400 hover:text-red-500 p-1.5 rounded hover:bg-slate-50 transition-colors"><Trash2 size={16} /></button>
+                        <button onClick={() => handleEventEdit(event)} className="text-slate-400 hover:text-[#0ea5e9] p-1.5 rounded hover:bg-slate-50 transition-colors" title="Edit Event"><Edit3 size={16} /></button>
+                        <button onClick={() => handleEventDelete(event.id)} className="text-slate-400 hover:text-red-500 p-1.5 rounded hover:bg-slate-50 transition-colors" title="Delete Event"><Trash2 size={16} /></button>
                       </div>
                     </div>
                   </div>
@@ -1294,7 +1346,42 @@ const Admin: React.FC = () => {
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Description *</label>
                     <textarea required rows={3} value={eventForm.description || ''} onChange={e => setEventForm({ ...eventForm, description: e.target.value })}
+                      placeholder="Detailed overview of the event, agenda, highlights..."
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/20 outline-none resize-none" />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+                        <span>Event Website <span className="text-slate-400 font-normal">(Optional)</span></span>
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                          <Globe size={18} />
+                        </div>
+                        <input 
+                          type="url" 
+                          value={eventForm.website_url || ''} 
+                          onChange={e => setEventForm({ ...eventForm, website_url: e.target.value })}
+                          placeholder="https://... (e.g. hackathon site, event portal)"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-3 text-slate-800 focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/20 outline-none text-sm" 
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+                        <span>Website Title / Label <span className="text-slate-400 font-normal">(Optional)</span></span>
+                      </label>
+                      <input 
+                        type="text" 
+                        value={eventForm.website_label || ''} 
+                        onChange={e => setEventForm({ ...eventForm, website_label: e.target.value })}
+                        placeholder="e.g. Hackathon Portal, Event Guidelines, Devpost"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] focus:ring-2 focus:ring-[#0ea5e9]/20 outline-none text-sm" 
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-400 -mt-2.5 col-span-full">
+                      Customize what to display instead of "Official Event Website" (e.g. "Devpost Page", "Hackathon Portal", "Event Guide").
+                    </p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
@@ -1324,10 +1411,21 @@ const Admin: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">External Website / Registration Link</label>
-                    <input type="url" value={eventForm.registration_link || ''} onChange={e => setEventForm({ ...eventForm, registration_link: e.target.value })}
-                      placeholder="https://... (e.g. hackathon site, event portal, or registration form)"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:border-[#0ea5e9] outline-none" />
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+                      <span>Registration Website / Form Link <span className="text-slate-400 font-normal">(Optional)</span></span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <LinkIcon size={18} />
+                      </div>
+                      <input 
+                        type="url" 
+                        value={eventForm.registration_link || ''} 
+                        onChange={e => setEventForm({ ...eventForm, registration_link: e.target.value })}
+                        placeholder="https://... (e.g. Google Form, Unstop, Devfolio, or ticket registration link)"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-3 text-slate-800 focus:border-[#0ea5e9] outline-none text-sm" 
+                      />
+                    </div>
                     
                     <div className="flex items-center gap-2.5 mt-2.5">
                       <input 

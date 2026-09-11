@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, ChevronRight, ChevronLeft, Play, Info, Sparkles, ArrowRight, Rocket } from 'lucide-react';
+import { Calendar, ChevronRight, ChevronLeft, Play, Info, Sparkles, ArrowRight, Rocket, Globe } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { slugify } from '../lib/utils';
+import { slugify, getEventWebsite, getEventWebsiteLabel, getCleanDescription } from '../lib/utils';
 
 const toDirectImageUrl = (url: string | null, width = 800): string | null => {
   if (!url) return null;
@@ -31,6 +31,8 @@ interface Event {
   eligibility?: string | null;
   rules_guidelines?: string | null;
   show_external_website?: boolean;
+  website_url?: string | null;
+  website_label?: string | null;
 }
 
 import { getCachedData, setCachedData } from '../lib/cache';
@@ -244,9 +246,9 @@ const Events: React.FC = () => {
                 {/* Description */}
                 <div className="max-w-2xl mb-10">
                   <p className={`text-slate-600 font-sans text-lg md:text-xl leading-relaxed font-medium ${isDescExpanded ? '' : 'line-clamp-3'}`}>
-                    {heroEvents[heroIndex].description}
+                    {getCleanDescription(heroEvents[heroIndex].description)}
                   </p>
-                  {heroEvents[heroIndex].description.length > 150 && (
+                  {heroEvents[heroIndex].description && heroEvents[heroIndex].description.length > 150 && (
                     <button 
                       onClick={() => setIsDescExpanded(!isDescExpanded)}
                       className="text-[#0ea5e9] hover:text-[#0284c7] font-semibold text-sm mt-2 focus:outline-none"
@@ -258,6 +260,7 @@ const Events: React.FC = () => {
 
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3">
+                  {/* Registration Action */}
                   {heroEvents[heroIndex].status === 'upcoming' && heroEvents[heroIndex].is_registration_open !== false && heroEvents[heroIndex].registration_link ? (
                     <a 
                       href={heroEvents[heroIndex].registration_link}
@@ -278,9 +281,22 @@ const Events: React.FC = () => {
                     </a>
                   ) : (
                     <button className="px-6 py-3 md:px-8 md:py-3.5 bg-slate-200 text-slate-500 font-bold text-base md:text-lg rounded-xl cursor-not-allowed flex items-center gap-2 md:gap-3 w-full sm:w-auto justify-center">
-                      Event Concluded
+                      {heroEvents[heroIndex].status === 'upcoming' ? 'Registrations Closed' : 'Event Concluded'}
                     </button>
                   )}
+
+                  {/* Event Website Action (Strictly Official Event Website) */}
+                  {getEventWebsite(heroEvents[heroIndex]) && (
+                    <a 
+                      href={getEventWebsite(heroEvents[heroIndex])!}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-6 py-3 md:px-8 md:py-3.5 bg-slate-900 text-white font-bold text-base md:text-lg rounded-xl hover:bg-slate-800 transition-all flex items-center gap-2 md:gap-3 shadow-md w-full sm:w-auto justify-center"
+                    >
+                      <Globe size={18} /> Visit {getEventWebsiteLabel(heroEvents[heroIndex])}
+                    </a>
+                  )}
+
                   <Link 
                     to={`/events/${slugify(heroEvents[heroIndex].name)}`}
                     className="px-6 py-3 md:px-8 md:py-3.5 bg-white text-slate-700 font-bold text-base md:text-lg rounded-xl border border-slate-200 hover:bg-slate-50 transition-all flex items-center gap-2 md:gap-3 shadow-sm w-full sm:w-auto justify-center"
@@ -525,7 +541,7 @@ const Events: React.FC = () => {
                       </h3>
 
                       <p className="text-slate-600 font-sans text-sm leading-relaxed line-clamp-3 mb-6">
-                        {event.description}
+                        {getCleanDescription(event.description)}
                       </p>
                     </div>
 
@@ -589,7 +605,7 @@ const Events: React.FC = () => {
                         </h3>
 
                         <p className="text-slate-600 font-sans text-sm leading-relaxed line-clamp-3 mb-6">
-                          {event.description}
+                          {getCleanDescription(event.description)}
                         </p>
                       </div>
 

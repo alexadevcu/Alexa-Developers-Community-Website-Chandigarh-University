@@ -68,6 +68,8 @@ interface Event {
   eligibility?: string | null;
   rules_guidelines?: string | null;
   partnerships?: string | null;
+  website_url?: string | null;
+  website_label?: string | null;
 }
 
 const toDirectImageUrl = (url: string | null, width = 800): string | null => {

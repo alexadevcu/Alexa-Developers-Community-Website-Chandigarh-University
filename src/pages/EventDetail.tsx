@@ -12,10 +12,11 @@ import {
   Award, 
   CheckCircle2, 
   Image as ImageIcon,
-  Share2
+  Share2,
+  Globe
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { slugify } from '../lib/utils';
+import { slugify, getEventWebsite, getEventWebsiteLabel, getCleanDescription } from '../lib/utils';
 import { fetchDriveFolderImages } from '../lib/driveExtractor';
 import toast from 'react-hot-toast';
 
@@ -38,6 +39,8 @@ interface Event {
   eligibility?: string | null;
   rules_guidelines?: string | null;
   show_external_website?: boolean;
+  website_url?: string | null;
+  website_label?: string | null;
 }
 
 const toDirectImageUrl = (url: string | null, width = 1200): string | null => {
@@ -85,6 +88,9 @@ const EventDetail: React.FC = () => {
   const [isExtractingGallery, setIsExtractingGallery] = useState(false);
 
   const countdown = useCountdown(event?.status === 'upcoming' ? event.end_date || event.event_date : null);
+  const websiteUrl = getEventWebsite(event);
+  const websiteLabel = getEventWebsiteLabel(event);
+  const cleanDescription = getCleanDescription(event?.description);
 
   const defaultEligibility = "Open to all students across all branches and universities. Individual & team entries permitted.";
   const defaultWhyParticipate = "• Expert mentorship and industry-relevant domain tracks\n• Exclusive certificates, swags, and networking opportunities\n• Live hosted sessions on campus at Chandigarh University";
@@ -321,6 +327,18 @@ const EventDetail: React.FC = () => {
                 <MapPin size={16} className="text-[#0ea5e9]" />
                 <span className="font-semibold">{event.venue || defaultVenue}</span>
               </div>
+              {websiteUrl && (
+                <a 
+                  href={websiteUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 text-[#0ea5e9] hover:text-[#0284c7] font-semibold transition-colors"
+                >
+                  <Globe size={16} className="text-[#0ea5e9]" />
+                  <span className="underline underline-offset-4 decoration-sky-300">{websiteLabel}</span>
+                  <ExternalLink size={13} />
+                </a>
+              )}
             </div>
           </motion.div>
         </div>
@@ -377,7 +395,7 @@ const EventDetail: React.FC = () => {
                   </div>
                 )}
 
-                {/* CTA */}
+                {/* 1. Registration Action */}
                 {event.status === 'upcoming' && event.is_registration_open !== false && event.registration_link ? (
                   <a 
                     href={event.registration_link}
@@ -387,7 +405,7 @@ const EventDetail: React.FC = () => {
                   >
                     Register Now <ExternalLink size={18} />
                   </a>
-                ) : event.show_external_website && event.registration_link ? (
+                ) : (event.show_external_website && event.registration_link) ? (
                   <a 
                     href={event.registration_link}
                     target="_blank"
@@ -399,10 +417,24 @@ const EventDetail: React.FC = () => {
                 ) : (
                   <button 
                     disabled 
-                    className="w-full py-4 bg-slate-200 text-slate-400 font-bold rounded-2xl cursor-not-allowed text-base"
+                    className="w-full py-4 bg-slate-200 text-slate-400 font-bold rounded-2xl cursor-not-allowed text-base font-semibold"
                   >
-                    Registrations Closed
+                    {event.status === 'upcoming' ? 'Registrations Closed' : 'Event Concluded'}
                   </button>
+                )}
+
+                {/* 2. Event Website (Strictly for Official Event Website) */}
+                {websiteUrl && (
+                  <a 
+                    href={websiteUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full mt-3 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl transition-all shadow-sm flex items-center justify-center gap-2 text-sm group"
+                  >
+                    <Globe size={16} className="text-sky-400" />
+                    <span>Visit {websiteLabel}</span>
+                    <ExternalLink size={14} className="text-slate-400 group-hover:text-white transition-colors" />
+                  </a>
                 )}
 
                 {/* Explore Highlights Button in Sidebar */}
@@ -547,8 +579,41 @@ const EventDetail: React.FC = () => {
                 <h2 className="text-2xl font-bold text-slate-900">About the Event</h2>
               </div>
               <p className="text-slate-600 leading-relaxed text-base whitespace-pre-wrap">
-                {event.description || 'Full event details coming soon.'}
+                {cleanDescription || 'Full event details coming soon.'}
               </p>
+
+              {/* Event Website Option in Description */}
+              {websiteUrl && (
+                <div className="mt-6 pt-6 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-sky-50/50 p-5 rounded-2xl border border-sky-100/80">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-white border border-sky-200 shadow-2xs flex items-center justify-center text-[#0ea5e9] shrink-0">
+                      <Globe size={20} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] uppercase tracking-wider font-mono font-bold text-slate-400">
+                        {websiteLabel}
+                      </p>
+                      <a 
+                        href={websiteUrl} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="text-sm font-bold text-slate-800 hover:text-[#0ea5e9] transition-colors truncate block"
+                      >
+                        {websiteUrl.replace(/^https?:\/\//, '')}
+                      </a>
+                    </div>
+                  </div>
+                  <a
+                    href={websiteUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#0ea5e9] hover:bg-[#0284c7] text-white text-sm font-bold rounded-xl transition-all shadow-sm shrink-0 group"
+                  >
+                    <span>Visit {websiteLabel}</span>
+                    <ExternalLink size={15} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* Why Participate */}

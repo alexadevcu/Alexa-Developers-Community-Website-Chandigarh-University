@@ -33,6 +33,8 @@ interface Event {
   status: 'upcoming' | 'completed';
   gallery_urls?: string | null;
   venue?: string | null;
+  website_url?: string | null;
+  website_label?: string | null;
 }
 
 export const toDirectImageUrl = (url: string | null, width = 1200): string | null => {
