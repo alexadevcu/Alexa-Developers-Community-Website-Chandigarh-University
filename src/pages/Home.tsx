@@ -13,7 +13,7 @@ import anamikaMamPic from '../assets/Homepage/Faculty/Anamika_Mam.jpg';
 import gal1 from '../assets/Homepage/Gallery/IMG20260226153332.jpg.jpeg';
 import gal2 from '../assets/Homepage/Gallery/IMG_0855 (1).JPG.jpeg';
 import gal3 from '../assets/Homepage/Gallery/IMG_2312.jpg.jpeg';
-import gal4 from '../assets/Homepage/Gallery/IMG_0928(1).jpg';
+import gal4 from '../assets/Homepage/Gallery/IMG_0928_opt.jpg';
 import sponsor1 from '../assets/Sponsors/2.png';
 import sponsor2 from '../assets/Sponsors/Asset 10 horizontal logo.png';
 import sponsor3 from '../assets/Sponsors/Copy of TAMBOOBABA-LOGOS.png';
