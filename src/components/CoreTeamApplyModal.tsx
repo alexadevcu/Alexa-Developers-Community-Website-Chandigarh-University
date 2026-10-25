@@ -229,6 +229,7 @@ const CoreTeamApplyModal: React.FC<CoreTeamApplyModalProps> = ({ isOpen, onClose
                         <option value="Design Team">Design Team</option>
                         <option value="Management Team">Management Team</option>
                         <option value="Content Team">Content/Social Media Team</option>
+                        <option value="Anchor Team">Anchor Team</option>
                       </select>
                     </div>
                   </div>

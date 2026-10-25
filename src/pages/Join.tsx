@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Play, ArrowRight, ExternalLink } from 'lucide-react';
-import landingPoster from '../assets/Homepage/landing_poster.jpg'; 
+import { Play, ArrowRight, ExternalLink, Sparkles } from 'lucide-react';
+import landingPoster from '../assets/Homepage/landing_poster.jpg';
 import CoreTeamApplyModal from '../components/CoreTeamApplyModal';
 
 const cuimsSteps = [
@@ -55,7 +55,7 @@ const Join: React.FC = () => {
       >
         <div
           className="relative rounded-3xl overflow-hidden border border-outline-variant/30 shadow-[0_20px_60px_-15px_rgba(0,103,131,0.3)] bg-surface-container-lowest"
-          style={{ width: '100%', aspectRatio: '16/9', minHeight: '200px' }}  
+          style={{ width: '100%', aspectRatio: '16/9', minHeight: '200px' }}
         >
           {!isPlaying ? (
             <div
@@ -99,11 +99,17 @@ const Join: React.FC = () => {
         transition={{ duration: 0.8, delay: 0.5 }}
         className="flex flex-wrap items-center justify-center gap-4 px-6 mb-20"
       >
+        <button
+          onClick={() => setIsApplyModalOpen(true)}
+          className="px-8 py-4 bg-[#006783] text-white font-label-md font-bold uppercase tracking-wider rounded-full hover:bg-[#004d63] hover:-translate-y-0.5 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 cursor-pointer"
+        >
+          Apply for Core Team <Sparkles size={18} />
+        </button>
         <a
           href="https://uims.cuchd.in/"
           target="_blank"
           rel="noopener noreferrer"
-          className="px-8 py-4 bg-[#006783] text-white font-label-md font-bold uppercase tracking-wider rounded-full hover:bg-[#004d63] hover:-translate-y-0.5 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+          className="px-8 py-4 border-2 border-[#006783] text-[#006783] font-label-md font-bold uppercase tracking-wider rounded-full hover:bg-[#006783]/10 hover:-translate-y-0.5 transition-all flex items-center gap-2"
         >
           Open CUIMS Portal <ExternalLink size={18} />
         </a>
@@ -111,7 +117,7 @@ const Join: React.FC = () => {
           href="https://whatsapp.com/channel/0029Vb8eGmx7YScy56dDu93n"
           target="_blank"
           rel="noopener noreferrer"
-          className="px-8 py-4 border border-[#006783] text-[#006783] font-label-md font-bold uppercase tracking-wider rounded-full hover:bg-[#006783]/10 transition-all flex items-center gap-2"
+          className="px-8 py-4 border border-outline-variant/60 text-on-surface-variant hover:text-[#006783] hover:border-[#006783] font-label-md font-bold uppercase tracking-wider rounded-full hover:bg-[#006783]/5 transition-all flex items-center gap-2"
         >
           Join WhatsApp Channel <ArrowRight size={18} />
         </a>
@@ -136,7 +142,7 @@ const Join: React.FC = () => {
         {/* Step-by-Step Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
           {cuimsSteps.map((s) => (
-            <div 
+            <div
               key={s.step}
               className="glass-card rounded-3xl p-6 border border-outline-variant/30 hover:border-[#00caff]/50 transition-all duration-300 shadow-sm flex items-start gap-4"
             >
@@ -154,12 +160,12 @@ const Join: React.FC = () => {
       </div>
 
       {/* Core Team Callout */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.8 }}
-        className="w-full px-6 relative z-10" 
+        className="w-full px-6 relative z-10"
         style={{ maxWidth: '900px', margin: '2rem auto 0' }}
       >
         <div className="relative rounded-[2.5rem] overflow-hidden p-10 md:p-14 text-center group bg-surface-variant/40 border border-[#00caff]/20 shadow-2xl backdrop-blur-md">
@@ -168,7 +174,7 @@ const Join: React.FC = () => {
           <p className="text-[#006783] font-body-md text-base md:text-lg leading-relaxed mb-10 max-w-2xl mx-auto">
             We are constantly looking for exceptional talent to join the ADC Core Team. If you have the drive to architect operations, lead technical tracks, or shape the future of our community, step up to the challenge.
           </p>
-          <button 
+          <button
             onClick={() => setIsApplyModalOpen(true)}
             className="inline-flex items-center justify-center px-10 py-4 bg-[#006783] border border-[#006783] text-white font-label-md font-bold uppercase tracking-[0.2em] hover:bg-[#004d63] transition-all duration-300 rounded-full shadow-lg hover:shadow-xl"
           >
@@ -177,9 +183,9 @@ const Join: React.FC = () => {
         </div>
       </motion.div>
 
-      <CoreTeamApplyModal 
-        isOpen={isApplyModalOpen} 
-        onClose={() => setIsApplyModalOpen(false)} 
+      <CoreTeamApplyModal
+        isOpen={isApplyModalOpen}
+        onClose={() => setIsApplyModalOpen(false)}
       />
     </div>
   );
