@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useInView, useMotionValue, useSpring } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { ArrowRight, Lightbulb, Rocket, GraduationCap, Users, User, Calendar, Award, Quote } from 'lucide-react';
 import landingWebm from '../assets/Homepage/Review/Landing.webm';
@@ -13,7 +13,7 @@ import anamikaMamPic from '../assets/Homepage/Faculty/Anamika_Mam.jpg';
 import gal1 from '../assets/Homepage/Gallery/IMG20260226153332.jpg.jpeg';
 import gal2 from '../assets/Homepage/Gallery/IMG_0855 (1).JPG.jpeg';
 import gal3 from '../assets/Homepage/Gallery/IMG_2312.jpg.jpeg';
-import gal4 from '../assets/Homepage/Gallery/IMG_0928.jpg';
+import gal4 from '../assets/Homepage/Gallery/IMG_0928(1).jpg';
 import sponsor1 from '../assets/Sponsors/2.png';
 import sponsor2 from '../assets/Sponsors/Asset 10 horizontal logo.png';
 import sponsor3 from '../assets/Sponsors/Copy of TAMBOOBABA-LOGOS.png';
@@ -110,22 +110,73 @@ const Home = () => {
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>(() => getCachedData<Event[]>('home_events') || []);
   const [totalEvents, setTotalEvents] = useState<number>(() => getCachedData<number>('home_total_events') || 0);
   const [sponsors, setSponsors] = useState<SponsorItem[]>(() => getCachedData<SponsorItem[]>('home_sponsors') || defaultSponsorsList);
-  const mouseX = useMotionValue(-500);
-  const mouseY = useMotionValue(-500);
-  const cursorX = useSpring(mouseX, { damping: 25, stiffness: 200 });
-  const cursorY = useSpring(mouseY, { damping: 25, stiffness: 200 });
+  const glowRef = useRef<HTMLDivElement>(null);
+  const heroVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     // Only track mouse cursor glow on devices with fine pointer (desktop mouse/trackpad)
-    if (typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches) {
-      const updateMousePosition = (e: MouseEvent) => {
-        mouseX.set(e.clientX - 128);
-        mouseY.set(e.clientY - 128);
-      };
-      window.addEventListener('mousemove', updateMousePosition, { passive: true });
-      return () => window.removeEventListener('mousemove', updateMousePosition);
-    }
-  }, [mouseX, mouseY]);
+    if (typeof window === 'undefined' || !window.matchMedia('(pointer: fine)').matches) return;
+
+    let rafId: number | null = null;
+    let targetX = -500;
+    let targetY = -500;
+    let currentX = -500;
+    let currentY = -500;
+    let isMoving = false;
+
+    const onMouseMove = (e: MouseEvent) => {
+      targetX = e.clientX - 128;
+      targetY = e.clientY - 128;
+      if (!isMoving) {
+        isMoving = true;
+        rafId = requestAnimationFrame(updateGlow);
+      }
+    };
+
+    const updateGlow = () => {
+      const dx = targetX - currentX;
+      const dy = targetY - currentY;
+      currentX += dx * 0.18;
+      currentY += dy * 0.18;
+
+      if (glowRef.current) {
+        glowRef.current.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+      }
+
+      if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+        rafId = requestAnimationFrame(updateGlow);
+      } else {
+        isMoving = false;
+      }
+    };
+
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  // Pause hero video when out of viewport to free GPU/CPU decoding resources
+  useEffect(() => {
+    const video = heroVideoRef.current;
+    if (!video) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      },
+      { threshold: 0.05 }
+    );
+
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const fetchHomeData = async () => {
@@ -182,12 +233,12 @@ const Home = () => {
     <>
       <div className="w-full bg-surface relative overflow-hidden">
 
-        {/* Mouse Follower Glow (Only on desktop fine pointer devices, zero blur shader) */}
-        <motion.div
-          className="pointer-events-none fixed top-0 left-0 z-50 w-64 h-64 rounded-full hidden lg:block transform-gpu"
+        {/* Mouse Follower Glow (Native GPU translate3d, stops RAF when idle) */}
+        <div
+          ref={glowRef}
+          className="pointer-events-none fixed top-0 left-0 z-50 w-64 h-64 rounded-full hidden lg:block will-change-transform"
           style={{
-            x: cursorX,
-            y: cursorY,
+            transform: 'translate3d(-500px, -500px, 0)',
             background: 'radial-gradient(circle, rgba(14, 165, 233, 0.12) 0%, rgba(14, 165, 233, 0) 70%)',
           }}
         />
@@ -196,14 +247,15 @@ const Home = () => {
           {/* 2. Hero Section */}
           <section className="min-h-[80vh] flex flex-col justify-center px-6 md:px-16 lg:px-24 relative overflow-hidden pt-14 md:pt-0">
 
-            {/* Full-width Video Background */}
+            {/* Full-width Video Background with IntersectionObserver pause */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden bg-surface" style={{ isolation: 'isolate', contain: 'paint' }}>
               <video
+                ref={heroVideoRef}
                 autoPlay
                 loop
                 muted
                 playsInline
-                preload="auto"
+                preload="metadata"
                 className="w-full h-full object-cover object-[80%_center] md:object-center opacity-100 scale-[1.02]"
               >
                 <source src="/Landing.webm" type="video/webm" />
@@ -341,7 +393,7 @@ const Home = () => {
                 </ul>
               </div>
               <div className="relative">
-                <div className="absolute -inset-4 bg-gradient-to-tr from-[#00caff]/20 to-transparent rounded-[3rem] blur-2xl opacity-50" />
+                <div className="absolute -inset-4 bg-gradient-to-tr from-[#00caff]/15 to-transparent rounded-[3rem] opacity-50 pointer-events-none" />
                 <div className="relative aspect-square md:aspect-[4/5] bg-surface-variant rounded-[2.5rem] border border-outline-variant/30 overflow-hidden shadow-2xl group hover:-translate-y-2 transition-transform duration-500">
                   <div className="absolute inset-0 bg-surface-dim transition-transform duration-700 group-hover:scale-105" />
                   <img src={teamGroupPic} alt="ADC CU Team" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />

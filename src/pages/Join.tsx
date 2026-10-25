@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Play, ArrowRight, ExternalLink } from 'lucide-react';
-import landingGif from '../assets/Homepage/landinggif.gif'; 
+import landingPoster from '../assets/Homepage/landing_poster.jpg'; 
 import CoreTeamApplyModal from '../components/CoreTeamApplyModal';
 
 const cuimsSteps = [
@@ -64,7 +64,7 @@ const Join: React.FC = () => {
             >
               {/* Background video thumbnail */}
               <img
-                src={landingGif}
+                src={landingPoster}
                 alt="Showcase Thumbnail"
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }}
               />
