@@ -26,7 +26,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant/30 shadow-sm transition-all duration-300">
+      <nav className="fixed top-0 w-full z-50 bg-[#f7f9fb]/95 border-b border-slate-200/80 shadow-xs transform-gpu will-change-transform">
         {/* Top bar: Logo + Desktop links + Contact */}
         <div className="flex justify-between items-center h-16 px-4 md:px-margin-desktop max-w-container-max mx-auto">
           <Link to="/" className="flex items-center gap-2 group shrink-0">

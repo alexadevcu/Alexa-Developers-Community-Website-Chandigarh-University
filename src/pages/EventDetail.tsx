@@ -359,6 +359,8 @@ const EventDetail: React.FC = () => {
                     src={posterSrc} 
                     alt={event.name} 
                     referrerPolicy="no-referrer"
+                    loading="eager"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                 </div>

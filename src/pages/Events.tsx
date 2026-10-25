@@ -50,11 +50,27 @@ const Events: React.FC = () => {
   const [isLoading, setIsLoading] = useState(() => !cachedEvents);
   const [isDescExpanded, setIsDescExpanded] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const [isHeroVisible, setIsHeroVisible] = useState(true);
 
   // Reset description expansion when hero changes
   useEffect(() => {
     setIsDescExpanded(false);
   }, [heroIndex]);
+
+  // Pause hero animation/timers when scrolled out of view
+  useEffect(() => {
+    const el = heroRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsHeroVisible(entry.isIntersecting);
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [heroEvents.length]);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -136,15 +152,16 @@ const Events: React.FC = () => {
     setHeroIndex(newIndex);
   };
 
-  // Auto-rotate Hero banner
+  // Auto-rotate Hero banner ONLY when hero is visible in viewport
   useEffect(() => {
-    if (heroEvents.length <= 1) return;
+    if (heroEvents.length <= 1 || !isHeroVisible) return;
     const interval = setInterval(() => {
+      if (document.hidden) return;
       setIsFirstLoad(false);
       setHeroIndex(prev => (prev + 1) % heroEvents.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, [heroEvents.length]);
+  }, [heroEvents.length, isHeroVisible]);
 
   const scrollCarousel = (direction: 'left' | 'right') => {
     if (carouselRef.current) {
@@ -170,11 +187,11 @@ const Events: React.FC = () => {
   }
 
   return (
-    <div className="w-full min-h-screen bg-slate-50 text-slate-800 overflow-x-hidden pb-32 font-sans selection:bg-[#0ea5e9]/20">
+    <div className="w-full min-h-screen bg-slate-50 text-slate-800 pb-32 font-sans selection:bg-[#0ea5e9]/20">
       
       {/* --- HERO BANNER (Multiple Upcoming Events or Recent Event) --- */}
       {heroEvents.length > 0 ? (
-        <div className="relative w-full min-h-[90vh] md:min-h-[95vh] flex items-end overflow-hidden group pt-24 bg-slate-900">
+        <div ref={heroRef} className="relative w-full min-h-[90vh] md:min-h-[95vh] flex items-end overflow-hidden group pt-24 bg-slate-900">
           
           <AnimatePresence mode="wait">
             <motion.div 
@@ -186,9 +203,11 @@ const Events: React.FC = () => {
               transition={{ duration: isFirstLoad ? 0 : 1.2, ease: "easeOut" }}
             >
               <img 
-                src={toDirectImageUrl(heroEvents[heroIndex].poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop"} 
+                src={toDirectImageUrl(heroEvents[heroIndex].poster_url, 1600) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop"} 
                 alt={heroEvents[heroIndex].name} 
                 referrerPolicy="no-referrer"
+                loading="eager"
+                decoding="async"
                 className="w-full h-full object-cover origin-center opacity-40"
               />
               {/* Soft Gradient Overlays for Light Theme text contrast */}
@@ -373,7 +392,7 @@ const Events: React.FC = () => {
             {upcomingEvents.map((event) => (
               <div
                 key={event.id}
-                className="bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group h-full justify-between"
+                className="content-auto bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow duration-200 flex flex-col group h-full justify-between transform-gpu"
               >
                 {/* Event Poster */}
                 <div className="relative aspect-[16/10] overflow-hidden bg-slate-900 shrink-0">
@@ -381,14 +400,16 @@ const Events: React.FC = () => {
                     src={toDirectImageUrl(event.poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"}
                     alt={event.name}
                     referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 transform-gpu"
                   />
                   <div className="absolute top-4 left-4 flex flex-wrap gap-2">
                     <span className="px-3 py-1 bg-red-600 text-white rounded-full text-[11px] font-bold uppercase tracking-wider shadow-sm flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                       Live / Upcoming
                     </span>
-                    <span className="px-3 py-1 bg-slate-900/80 backdrop-blur-md text-white rounded-full text-[11px] font-semibold uppercase tracking-wider">
+                    <span className="px-3 py-1 bg-slate-900/90 text-white rounded-full text-[11px] font-semibold uppercase tracking-wider shadow-sm">
                       {event.type}
                     </span>
                   </div>
@@ -397,9 +418,23 @@ const Events: React.FC = () => {
                 {/* Event Details */}
                 <div className="p-6 md:p-8 flex flex-col flex-grow justify-between">
                   <div>
-                    <div className="flex items-center gap-2 text-slate-500 font-mono text-xs uppercase tracking-wider mb-3">
-                      <Calendar size={14} className="text-[#0ea5e9]" />
-                      <span className="font-semibold">{formatDate(event.event_date, event.end_date)}</span>
+                    <div className="flex items-center justify-between gap-2 text-slate-500 font-mono text-xs uppercase tracking-wider mb-3">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={14} className="text-[#0ea5e9]" />
+                        <span className="font-semibold">{formatDate(event.event_date, event.end_date)}</span>
+                      </div>
+                      {getEventWebsite(event) && (
+                        <a 
+                          href={getEventWebsite(event)!}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[#0ea5e9] hover:text-[#0284c7] font-semibold tracking-normal normal-case transition-colors"
+                          title={`Visit ${getEventWebsiteLabel(event)}`}
+                        >
+                          <Globe size={13} />
+                          <span className="truncate max-w-[120px]">{getEventWebsiteLabel(event)}</span>
+                        </a>
+                      )}
                     </div>
 
                     <h3 className="font-display font-bold text-xl md:text-2xl text-slate-900 mb-3 leading-snug group-hover:text-[#0ea5e9] transition-colors min-h-[3.25rem] line-clamp-2">
@@ -407,26 +442,50 @@ const Events: React.FC = () => {
                     </h3>
 
                     <p className="text-slate-600 font-sans text-sm leading-relaxed line-clamp-3 mb-6">
-                      {event.description}
+                      {getCleanDescription(event.description)}
                     </p>
                   </div>
 
                   {/* Actions */}
-                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 mt-auto">
-                    {event.is_registration_open !== false && event.registration_link ? (
-                      <a
-                        href={event.registration_link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-5 py-2.5 bg-[#0ea5e9] text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-[#0284c7] transition-all flex items-center gap-2 shadow-sm"
-                      >
-                        <Play size={14} className="fill-white" /> Register Now
-                      </a>
-                    ) : (
-                      <span className="text-xs font-semibold text-slate-400">
-                        Registration Closed
-                      </span>
-                    )}
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 mt-auto flex-wrap">
+                    <div className="flex items-center gap-2">
+                      {event.status === 'upcoming' && event.is_registration_open !== false && event.registration_link ? (
+                        <a
+                          href={event.registration_link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-5 py-2.5 bg-[#0ea5e9] text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-[#0284c7] transition-all flex items-center gap-2 shadow-sm"
+                        >
+                          <Play size={14} className="fill-white" /> Register Now
+                        </a>
+                      ) : (event.show_external_website && event.registration_link) ? (
+                        <a 
+                          href={event.registration_link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-4 py-2.5 bg-slate-900 text-white text-xs font-bold uppercase tracking-wider rounded-xl hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm"
+                        >
+                          <Globe size={14} /> Visit Website
+                        </a>
+                      ) : (
+                        <span className="text-xs font-semibold text-slate-400">
+                          {event.status === 'upcoming' ? 'Registration Closed' : 'Event Concluded'}
+                        </span>
+                      )}
+
+                      {getEventWebsite(event) && (
+                        <a
+                          href={getEventWebsite(event)!}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-2xs"
+                          title={`Visit ${getEventWebsiteLabel(event)}`}
+                        >
+                          <Globe size={14} className="text-[#0ea5e9]" />
+                          <span className="hidden sm:inline">Website</span>
+                        </a>
+                      )}
+                    </div>
 
                     <Link
                       to={`/events/${slugify(event.name)}`}
@@ -440,7 +499,7 @@ const Events: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="bg-white/80 backdrop-blur-md rounded-3xl border border-slate-200/80 p-8 md:p-12 text-center max-w-2xl mx-auto shadow-sm">
+          <div className="bg-white rounded-3xl border border-slate-200/80 p-8 md:p-12 text-center max-w-2xl mx-auto shadow-sm">
             <div className="w-14 h-14 rounded-2xl bg-[#0ea5e9]/10 text-[#0ea5e9] flex items-center justify-center mx-auto mb-4">
               <Rocket size={28} />
             </div>
@@ -508,7 +567,7 @@ const Events: React.FC = () => {
               {carouselEvents.map((event) => (
                 <div 
                   key={event.id}
-                  className="bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group h-full justify-between"
+                  className="content-auto bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow duration-200 flex flex-col group h-full justify-between transform-gpu"
                 >
                   {/* Poster Thumbnail */}
                   <div className="relative aspect-[16/10] overflow-hidden bg-slate-900 shrink-0">
@@ -516,13 +575,15 @@ const Events: React.FC = () => {
                       src={toDirectImageUrl(event.poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"} 
                       alt={event.name} 
                       referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 transform-gpu"
                     />
                     <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                      <span className="px-3 py-1 bg-slate-900/80 backdrop-blur-md text-white rounded-full text-[11px] font-semibold uppercase tracking-wider">
+                      <span className="px-3 py-1 bg-slate-900/90 text-white rounded-full text-[11px] font-semibold uppercase tracking-wider shadow-sm">
                         {event.type}
                       </span>
-                      <span className="px-2.5 py-1 bg-white/90 backdrop-blur-md text-slate-800 rounded-full text-[10px] font-bold font-mono">
+                      <span className="px-2.5 py-1 bg-white/95 text-slate-800 rounded-full text-[10px] font-bold font-mono shadow-sm">
                         {new Date(event.event_date).getFullYear()}
                       </span>
                     </div>
@@ -531,9 +592,23 @@ const Events: React.FC = () => {
                   {/* Card Content */}
                   <div className="p-6 md:p-8 flex flex-col flex-grow justify-between">
                     <div>
-                      <div className="flex items-center gap-2 text-slate-500 font-mono text-xs uppercase tracking-wider mb-3">
-                        <Calendar size={14} className="text-[#0ea5e9]" />
-                        <span className="font-semibold">{formatDate(event.event_date, event.end_date)}</span>
+                      <div className="flex items-center justify-between gap-2 text-slate-500 font-mono text-xs uppercase tracking-wider mb-3">
+                        <div className="flex items-center gap-2">
+                          <Calendar size={14} className="text-[#0ea5e9]" />
+                          <span className="font-semibold">{formatDate(event.event_date, event.end_date)}</span>
+                        </div>
+                        {getEventWebsite(event) && (
+                          <a 
+                            href={getEventWebsite(event)!}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[#0ea5e9] hover:text-[#0284c7] font-semibold tracking-normal normal-case transition-colors"
+                            title={`Visit ${getEventWebsiteLabel(event)}`}
+                          >
+                            <Globe size={13} />
+                            <span className="truncate max-w-[120px]">{getEventWebsiteLabel(event)}</span>
+                          </a>
+                        )}
                       </div>
 
                       <h3 className="font-display font-bold text-xl md:text-2xl text-slate-900 mb-3 leading-snug group-hover:text-[#0ea5e9] transition-colors min-h-[3.25rem] line-clamp-2">
@@ -546,10 +621,24 @@ const Events: React.FC = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 mt-auto">
-                      <span className="text-xs font-semibold text-slate-400">
-                        Past Event
-                      </span>
+                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 mt-auto flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-semibold text-slate-400">
+                          Past Event
+                        </span>
+                        {getEventWebsite(event) && (
+                          <a
+                            href={getEventWebsite(event)!}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all flex items-center gap-1"
+                            title={`Visit ${getEventWebsiteLabel(event)}`}
+                          >
+                            <Globe size={13} className="text-[#0ea5e9]" />
+                            <span className="hidden sm:inline">Website</span>
+                          </a>
+                        )}
+                      </div>
 
                       <Link 
                         to={`/events/${slugify(event.name)}`}
@@ -572,7 +661,7 @@ const Events: React.FC = () => {
                 {carouselEvents.map((event) => (
                   <div 
                     key={event.id}
-                    className="w-[300px] sm:w-[350px] md:w-[380px] bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group snap-start shrink-0 justify-between"
+                    className="w-[300px] sm:w-[350px] md:w-[380px] bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow duration-200 flex flex-col group snap-start shrink-0 justify-between transform-gpu"
                   >
                     {/* Poster Thumbnail */}
                     <div className="relative aspect-[16/10] overflow-hidden bg-slate-900 shrink-0">
@@ -580,13 +669,15 @@ const Events: React.FC = () => {
                         src={toDirectImageUrl(event.poster_url) || "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop"} 
                         alt={event.name} 
                         referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 transform-gpu"
                       />
                       <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                        <span className="px-3 py-1 bg-slate-900/80 backdrop-blur-md text-white rounded-full text-[11px] font-semibold uppercase tracking-wider">
+                        <span className="px-3 py-1 bg-slate-900/90 text-white rounded-full text-[11px] font-semibold uppercase tracking-wider shadow-sm">
                           {event.type}
                         </span>
-                        <span className="px-2.5 py-1 bg-white/90 backdrop-blur-md text-slate-800 rounded-full text-[10px] font-bold font-mono">
+                        <span className="px-2.5 py-1 bg-white/95 text-slate-800 rounded-full text-[10px] font-bold font-mono shadow-sm">
                           {new Date(event.event_date).getFullYear()}
                         </span>
                       </div>
@@ -595,9 +686,23 @@ const Events: React.FC = () => {
                     {/* Card Content */}
                     <div className="p-6 md:p-8 flex flex-col flex-grow justify-between">
                       <div>
-                        <div className="flex items-center gap-2 text-slate-500 font-mono text-xs uppercase tracking-wider mb-3">
-                          <Calendar size={14} className="text-[#0ea5e9]" />
-                          <span className="font-semibold">{formatDate(event.event_date, event.end_date)}</span>
+                        <div className="flex items-center justify-between gap-2 text-slate-500 font-mono text-xs uppercase tracking-wider mb-3">
+                          <div className="flex items-center gap-2">
+                            <Calendar size={14} className="text-[#0ea5e9]" />
+                            <span className="font-semibold">{formatDate(event.event_date, event.end_date)}</span>
+                          </div>
+                          {getEventWebsite(event) && (
+                            <a 
+                              href={getEventWebsite(event)!}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[#0ea5e9] hover:text-[#0284c7] font-semibold tracking-normal normal-case transition-colors"
+                              title={`Visit ${getEventWebsiteLabel(event)}`}
+                            >
+                              <Globe size={13} />
+                              <span className="truncate max-w-[120px]">{getEventWebsiteLabel(event)}</span>
+                            </a>
+                          )}
                         </div>
 
                         <h3 className="font-display font-bold text-xl md:text-2xl text-slate-900 mb-3 leading-snug group-hover:text-[#0ea5e9] transition-colors line-clamp-2 min-h-[3.25rem]">
@@ -610,10 +715,24 @@ const Events: React.FC = () => {
                       </div>
 
                       {/* Actions */}
-                      <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 mt-auto">
-                        <span className="text-xs font-semibold text-slate-400">
-                          Past Event
-                        </span>
+                      <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3 mt-auto flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-slate-400">
+                            Past Event
+                          </span>
+                          {getEventWebsite(event) && (
+                            <a
+                              href={getEventWebsite(event)!}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all flex items-center gap-1"
+                              title={`Visit ${getEventWebsiteLabel(event)}`}
+                            >
+                              <Globe size={13} className="text-[#0ea5e9]" />
+                              <span className="hidden sm:inline">Website</span>
+                            </a>
+                          )}
+                        </div>
 
                         <Link 
                           to={`/events/${slugify(event.name)}`}

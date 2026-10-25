@@ -99,10 +99,16 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
   body {
     background-color: var(--color-surface);
     color: var(--color-on-surface);
     font-family: 'Space Grotesk', sans-serif;
+    overflow-x: hidden;
   }
 }
 

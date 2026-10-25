@@ -25,10 +25,13 @@ const Footer: React.FC = () => {
     <footer className="w-full relative z-20 bg-[#001f2a] border-t border-white/10 overflow-hidden">
       
       {/* Ambient background glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#00caff]/10 blur-[120px] rounded-full pointer-events-none" />
+      <div 
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] rounded-full pointer-events-none opacity-40 transform-gpu"
+        style={{ background: 'radial-gradient(ellipse at center, rgba(0, 202, 255, 0.25) 0%, rgba(0, 202, 255, 0) 70%)' }}
+      />
 
-      {/* Premium Dark Glass Container */}
-      <div className="relative z-10 bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl md:rounded-[2rem] mx-3 my-4 md:mx-10 md:my-8 p-5 md:p-12 lg:p-16 shadow-2xl">
+      {/* Premium Dark Container */}
+      <div className="relative z-10 bg-[#002a3a]/80 border border-white/10 rounded-3xl md:rounded-[2rem] mx-3 my-4 md:mx-10 md:my-8 p-5 md:p-12 lg:p-16 shadow-2xl">
         <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-16">
           
           {/* Column 1: Brand & Chapter Location */}
